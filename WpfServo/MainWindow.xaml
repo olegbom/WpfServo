@@ -37,7 +37,9 @@
             <Line X1 =" 0" Y1 =" 0" X2 ="30" Y2="20" Stroke="Black" Visibility="Visible" StrokeThickness ="1"></Line>
         </Canvas>
 
-        <TextBox  Grid.Row="8" Text ="BSUIR Forever" x:Name="MyTextBox"></TextBox>
+        <TextBox  Grid.Row="8" Text ="BSUIR Forever" x:Name="MyTextBox" TextWrapping="Wrap"
+                  VerticalScrollBarVisibility="Visible"
+                  AcceptsReturn="True"  Height="40"></TextBox>
         <Button Click="ButtonBase_OnClick" Grid.Row="8" Grid.Column="1">Рисовать</Button>
         
     </Grid>

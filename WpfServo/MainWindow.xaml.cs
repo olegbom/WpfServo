@@ -24,7 +24,7 @@ namespace WpfServo
 
         const double ALen = 150.0;
         const double BLen = 69.0;
-        const double CLen = 60;
+        const double CLen = 100;
 
         SerialPort _serialPort = new SerialPort("COM3",
                                         115200,
@@ -159,16 +159,19 @@ namespace WpfServo
             double betaTicks = beta * 180 / Math.PI / 0.09 * 2 + 1000;
             double gammaTicks = gamma * 180 / Math.PI / 0.108 * 2 + 1390;
             double phiTicks = phi * 180 / Math.PI / 0.11 * 2 + 1350;
-            double thetaTicks = theta * 180 / Math.PI / 0.086 * 2 + 1000;
+            double thetaTicks = theta * 180 / Math.PI / 0.086 * 2 + 1000 - 250;
+
+            thetaTicks -= _pickUp;
+            Slider4.Value = thetaTicks;
             Slider1.Value = betaTicks;
             Slider2.Value = phiTicks;
             Slider3.Value = gammaTicks;
-            Slider4.Value = thetaTicks;
+            
             
 
         }
 
-        private double Z = 150, _x = 0,_y = CLen;
+        private double Z = 150, _x = 0, _y = CLen, _pickUp = 0;
 
         private void Slider_ZChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -179,29 +182,30 @@ namespace WpfServo
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
         {
-            string MyText = MyTextBox.Text;
+            string[] MyText = MyTextBox.Text.Split(new []{"\r\n"}, StringSplitOptions.None);
 
-            GlyphTypeface myGlyph = new GlyphTypeface(new Uri("file:///C:\\WINDOWS\\Fonts\\cour.ttf"));
-            if (MyText.Length > 8)
+            GlyphTypeface myGlyph = new GlyphTypeface(new Uri("file:///C:\\WINDOWS\\Fonts\\tahoma.ttf"));
+
+
+            for (int j = 0; j < MyText.Length; j++)
             {
-                MessageBox.Show("Длина слова ограниченна 8 буквами");
-                return;
-
-            }
-
-            for (var i = 0; i < MyText.Length; i++)
-            {
-                var ch = MyText[i];
-                Geometry myGeom = myGlyph.GetGlyphOutline(myGlyph.CharacterToGlyphMap[ch], 40, 10);
-
-                PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
-               // Path.Data = myPath;
-                CalcServoAngles(_x, _y, Z+20);
-                Thread.Sleep(500);
-                DrawPathGeometry(myPath,i*22-45);
-                CalcServoAngles(_x, _y, Z + 20);
+                string myString = MyText[j];
 
 
+                for (var i = 0; i < myString.Length; i++)
+                {
+                    var ch = myString[i];
+                    Geometry myGeom = myGlyph.GetGlyphOutline(myGlyph.CharacterToGlyphMap[ch], 40, 10);
+
+                    PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
+                    // Path.Data = myPath;
+                    PickUpPen();
+                    Thread.Sleep(500);
+                    DrawPathGeometry(myPath, i * 24 - 45, j*30 -50);
+                    PickUpPen();
+
+
+                }
             }
 
             /*double xOld = 0, yOld = 0;
@@ -216,7 +220,15 @@ namespace WpfServo
             */
         }
 
-        private void DrawPathGeometry(PathGeometry myPath, double x0)
+
+        private void PickUpPen()
+        {
+            _pickUp = 50;
+            CalcServoAngles(_x, _y, Z + 20);
+            _pickUp = 0;
+        }
+
+        private void DrawPathGeometry(PathGeometry myPath, double x0, double y0)
         {
            
             
@@ -228,29 +240,19 @@ namespace WpfServo
                 {
                     if (seg is LineSegment ls)
                     {
-                        double x = ls.Point.X - 50 + x0;
-                        double y = ls.Point.Y;
-                        points.Add(new Point(x,y));
-
+                        points.Add(ls.Point);
                     }
 
                     if (seg is ArcSegment arcs)
                     {
-                        
-                        double x = arcs.Point.X - 50 + x0;
-                        double y = arcs.Point.Y;
-                        points.Add(new Point(x, y));
-
+                        points.Add(arcs.Point);
                     }
 
                     if (seg is PolyLineSegment pls)
                     {
                         foreach (var point in pls.Points)
                         {
-                            double x = point.X - 50 + x0;
-                            double y = point.Y;
-                            points.Add(new Point(x, y));
-
+                            points.Add(point);
                         }
                     }
 
@@ -258,49 +260,39 @@ namespace WpfServo
                     {
                         foreach (var point in pbs.Points)
                         {
-                            double x = point.X - 50 + x0;
-                            double y = point.Y;
-                            points.Add(new Point(x, y));
-
+                            points.Add(point);
                         }
                     }
 
                     if (seg is BezierSegment bs)
                     {
-                        double x = bs.Point1.X - 50 + x0;
-                        double y = bs.Point1.Y;
-                        points.Add(new Point(x, y));
-
-                        x = bs.Point2.X - 50 + x0;
-                        y = bs.Point2.Y;
-                        points.Add(new Point(x, y));
-
-                        x = bs.Point3.X - 50 + x0;
-                        y = bs.Point3.Y;
-                        points.Add(new Point(x, y));
-
+                        points.Add(bs.Point1);
+                        points.Add(bs.Point2);
+                        points.Add(bs.Point3);
                     }
                 }
                 points.Add(points[0]);
+                points = points.Select(p => p + new Vector(x0 - 50, y0)).ToList();
                 if (points.Count < 1) return;
+                _pickUp = 50;
                 for (int i = 20; i >= 0; i--)
                 {
-                    CalcServoAngles(points[0].X, -points[0].Y + CLen + 20, Z + i);
+                    CalcServoAngles(points[0].X, -points[0].Y + CLen, Z + i);
                     Thread.Sleep(25);
                 }
-                
-               
+
+                _pickUp = 0;
                 for (var i = 0; i < points.Count-1; i++)
                 {
                     DrawLine(points[i].X, points[i].Y, points[i+1].X, points[i+1].Y);
                 }
-
+                _pickUp = 50;
                 for (int i = 0; i < 21; i++)
                 {
-                    CalcServoAngles(points[0].X, -points[0].Y + CLen + 20, Z + i);
+                    CalcServoAngles(points[0].X, -points[0].Y + CLen, Z + i);
                     Thread.Sleep(25);
                 }
-
+                _pickUp = 0;
                 for (var i = 0; i < points.Count -1; i++)
                 {
                     MyCanvas.Children.Add(new Line()
@@ -326,7 +318,7 @@ namespace WpfServo
             for (double t = 0; t <= 1; t += 1 / leng)
             {
                 _x = x0 * (1 - t) + x1 * t;
-                _y = -y0 * (1 - t) - y1 * t + CLen+20;
+                _y = -y0 * (1 - t) - y1 * t + CLen;
                 CalcServoAngles(_x, _y , Z);
                 Thread.Sleep(20);
             }
