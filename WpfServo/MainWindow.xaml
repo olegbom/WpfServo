@@ -24,7 +24,7 @@
         <Slider x:Name="Slider4" Grid.Row="3" Minimum="0" Maximum="6000" Value ="3000" ValueChanged="Slider_ValueChanged"></Slider>
         <Slider x:Name="Slider5" Grid.Row="4" Minimum="0" Maximum="5000" ValueChanged="Slider_ValueChanged"></Slider>
         <Slider x:Name="Slider6" Grid.Row="5" Minimum="0" Maximum="5000" ValueChanged="Slider_ValueChanged"></Slider>
-        <Slider x:Name="Slider7" Grid.Row="6" Minimum="100" Maximum="200" Value ="150"  ValueChanged="Slider_ZChanged"></Slider>
+        <Slider x:Name="Slider7" Grid.Row="6" Minimum="0" Maximum="200" Value ="150"  ValueChanged="Slider_ZChanged"></Slider>
         <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Value, ElementName=Slider1}" Width="70"></TextBox>
         <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Value, ElementName=Slider2}" Width="70"></TextBox>
         <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Value, ElementName=Slider3}" Width="70"></TextBox>
