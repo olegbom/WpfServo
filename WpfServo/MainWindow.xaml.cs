@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -15,15 +16,17 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO.Ports;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using WpfServo.Annotations;
 
 namespace WpfServo
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
 
         const double ALen = 150.0;
@@ -34,39 +37,51 @@ namespace WpfServo
         public MainWindow()
         {
 
-            ManagementObjectSearcher searcher =
-                new ManagementObjectSearcher("root\\CIMV2",
-                    "SELECT * FROM Win32_SerialPort");
+            OpenComPortAsync();
 
-            foreach (ManagementObject queryObj in searcher.Get())
-            {
-                string name = queryObj["Name"].ToString();
-                if (name.Contains("STLink Virtual COM Port"))
-                {
-                    _serialPort = new SerialPort(queryObj["DeviceID"].ToString(), 115200,
-                        Parity.None,
-                        8,
-                        StopBits.One);
-                    break;
-                }
 
-            }
-            if(_serialPort != null)
-                _serialPort.Open();
-            else
-            {
-                MessageBox.Show("Нет подключения!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-
-                Close();
-                
-                return;
-            }
-
-           
             InitializeComponent();
 
             DataContext = this;
-            Title = _serialPort.PortName + " Открыт";
+           
+        }
+
+        private bool _isFindComPort = false;
+
+        private SerialPort FindComPort()
+        {
+            SerialPort serialPort = null;
+            while (true)
+            {
+                ManagementObjectSearcher searcher =
+                    new ManagementObjectSearcher("root\\CIMV2",
+                        "SELECT * FROM Win32_SerialPort");
+
+                foreach (ManagementObject queryObj in searcher.Get())
+                {
+                    string name = queryObj["Name"].ToString();
+                    if (name.Contains("STLink Virtual COM Port"))
+                    {
+                        serialPort = new SerialPort(queryObj["DeviceID"].ToString(), 115200,
+                            Parity.None,
+                            8,
+                            StopBits.One);
+                        break;
+                    }
+                }
+
+                if (serialPort != null) break;
+                Thread.Sleep(1000);
+            }
+
+            _isFindComPort = true;
+            return serialPort;
+        }
+
+        private async void OpenComPortAsync()
+        {
+            _serialPort = await Task.Run(() => FindComPort());
+            _serialPort.Open();
         }
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -383,6 +398,14 @@ namespace WpfServo
                 CalcServoAngles(_x, _y , Z);
                 Thread.Sleep(10);
             }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        [NotifyPropertyChangedInvocator]
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

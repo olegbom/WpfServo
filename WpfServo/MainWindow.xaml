@@ -31,6 +31,8 @@
         <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Value, ElementName=Slider4}" Width="70"></TextBox>
         <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Value, ElementName=Slider5}" Width="70"></TextBox>
         <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Value, ElementName=Slider6}" Width="70"></TextBox>
+        
+
 
         <Canvas x:Name="MyCanvas" Grid.Row="7" Grid.ColumnSpan="2" MouseDown="Canvas_MouseDown" MouseUp="Canvas_MouseUp" MouseMove="Canvas_MouseMove" Background="AliceBlue" >
             <Path x:Name ="Path" Stroke="Black"></Path>
