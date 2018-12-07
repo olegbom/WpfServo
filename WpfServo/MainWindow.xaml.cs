@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Drawing;
+using System.Globalization;
 using System.Windows;
 using System.Management;
 using System.Windows.Controls;
@@ -19,6 +22,10 @@ using System.IO.Ports;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Controls.Primitives;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.Scripting;
+using WpfColorFontDialog;
 using WpfServo.Annotations;
 
 namespace WpfServo
@@ -29,14 +36,18 @@ namespace WpfServo
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
 
+
         const double ALen = 150.0;
         const double BLen = 71.0;
 
+        
+
+
 
         private SerialPort _serialPort;
-        public MainWindow()
+        public  MainWindow()
         {
-
+           
             OpenComPortAsync();
 
 
@@ -46,7 +57,12 @@ namespace WpfServo
            
         }
 
-        private bool _isFindComPort = false;
+        public bool IsFindComPort { get; set; } = false;
+
+        public string WindowTitle => IsFindComPort ? "Порт открыт" : "Порт не найден";
+        public bool IsScriptCorrect { get; set; } = false;
+        public Visibility ButtonRunVisible => IsScriptCorrect ? Visibility.Visible : Visibility.Hidden;
+        public string CompilingInfo { get; set; } = "";
 
         private SerialPort FindComPort()
         {
@@ -74,7 +90,7 @@ namespace WpfServo
                 Thread.Sleep(1000);
             }
 
-            _isFindComPort = true;
+            IsFindComPort = true;
             return serialPort;
         }
 
@@ -84,53 +100,77 @@ namespace WpfServo
             _serialPort.Open();
         }
 
-        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        public double Slider1Value { get; set; } = 3000;
+
+        public void OnSlider1ValueChanged()
         {
-            Slider mySlider = (Slider)sender;
-
-            byte servo = (byte)(Grid.GetRow(mySlider)+ 31);
-
-            byte a = 0, b = 0;
-            var val = (UInt16)e.NewValue;
-            a = (byte)(val >> 8);
-            b = (byte)(0xFF & val);
-            _serialPort.Write(new byte[] { servo , a, b }, 0, 3);
+            SendServoValue(0, (UInt16)Slider1Value);
         }
+
+        public double Slider2Value { get; set; } = 3000;
+
+        public void OnSlider2ValueChanged()
+        {
+            SendServoValue(1, (UInt16)Slider2Value);
+        }
+
+        public double Slider3Value { get; set; } = 3000;
+
+        public void OnSlider3ValueChanged()
+        {
+            SendServoValue(2, (UInt16)Slider3Value);
+        }
+
+        public double Slider4Value { get; set; } = 3000;
+
+        public void OnSlider4ValueChanged()
+        {
+            SendServoValue(3, (UInt16)Slider4Value);
+        }
+
+        public double Slider5Value { get; set; } = 3000;
+
+        public void OnSlider5ValueChanged()
+        {
+            SendServoValue(4, (UInt16)Slider5Value);
+        }
+
+        public double Slider6Value { get; set; } = 3000;
+
+        public void OnSlider6ValueChanged()
+        {
+            SendServoValue(5, (UInt16)Slider6Value);
+        }
+
+        private void SendServoValue(int channel, UInt16 value)
+        {
+            byte servo = (byte)(channel + 31);
+            byte a = (byte)(value >> 8);
+            byte b = (byte)(0xFF & value);
+            _serialPort?.Write(new [] { servo, a, b }, 0, 3);
+        }
+      
+
+      
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            _serialPort.Close();
+            _serialPort?.Close();
         }
-
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Q)
-            {
-                Slider1.Value += 40;
-            }
-            if (e.Key == Key.E)
-            {
-                Slider1.Value -= 40;
-            }
-
-        }
-
+        
         double old1, old2;
         Point mDownPos;
         Point mUpPos;
         bool isDown;
-        private void Window_KeyUp(object sender, KeyEventArgs e)
-        {
-            
-        }
+      
 
-        private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
+        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            var canvas = (Canvas) sender;
-            mDownPos = e.GetPosition(canvas);
+            var border = (Border) sender;
+            mDownPos = e.GetPosition(border);
 
-            var width = canvas.ActualWidth;
-            var height = canvas.ActualHeight;
+            var width = border.ActualWidth;
+            var height = border.ActualHeight;
 
             _x = (mDownPos.X / width -0.5)*150;
             _y = (1-mDownPos.Y / height) * 100;
@@ -139,7 +179,7 @@ namespace WpfServo
             CalcServoAngles(_x, _y, Z+5);
         }
         
-        private void Canvas_MouseUp(object sender, MouseButtonEventArgs e)
+        private void Border_MouseUp(object sender, MouseButtonEventArgs e)
         {
             if (isDown)
             {
@@ -149,12 +189,12 @@ namespace WpfServo
             }
         }
 
-        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+        private void Border_MouseMove(object sender, MouseEventArgs e)
         {
             if (isDown)
             {
 
-                var canvas = (Canvas)sender;
+                var canvas = (Border)sender;
                 mDownPos = e.GetPosition(canvas);
 
                 var width = canvas.ActualWidth;
@@ -208,30 +248,11 @@ namespace WpfServo
 
             thetaTicks -= _pickUp;
 
-         /*   double[] doubleValues = new double[6]
-            {
-                betaTicks, phiTicks, gammaTicks, thetaTicks, 1500, 1500
-            };
-            byte[] bytes = new byte[18];
-            for (int i = 0; i < 6; i++)
-            {
-                var val = (UInt16)doubleValues[i];
-                bytes[i * 2] = (byte)(i + 31);
-                bytes[i*2 + 1] = (byte)(val >> 8);
-                bytes[i*2 + 2] = (byte)(0xFF & val);
-                _serialPort.Write(bytes, 0, 18);
-            }*/
-            
 
-            Slider5.Value = thetaTicks;
-          
-            Slider1.Value = betaTicks;
-
-            Slider4.Value = phiTicks;
-
-            Slider3.Value = gammaTicks;
-
-
+            Slider5Value = thetaTicks;
+            Slider1Value = betaTicks;
+            Slider4Value = phiTicks;
+            Slider3Value = gammaTicks;
 
         }
 
@@ -244,40 +265,46 @@ namespace WpfServo
             CalcServoAngles(_x, _y, Z);
         }
 
-        public Task PraseTask;
-        public ConcurrentQueue<Line> Lines = new ConcurrentQueue<Line>(); 
+
+        public class MyLine
+        {
+           
+                public Point From { get; set; }
+
+                public Point To { get; set; }
+          
+        }
+
+        public MTObservableCollection<MyLine> Lines { get; } = new MTObservableCollection<MyLine>();
+
+        public bool IsDrawing { get; set; }
+        public bool IsButtonDrawEnabled => !IsDrawing;
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
         {
-            string[] MyText = MyTextBox.Text.Split(new []{"\r\n"}, StringSplitOptions.None);
+            IsDrawing = true;
+            Lines.Clear();
 
-            GlyphTypeface myGlyph = new GlyphTypeface(new Uri("file:///C:\\WINDOWS\\Fonts\\times.ttf"));
-            MyCanvas.Children.Clear();
+            FormattedText text = new FormattedText(MyTextBox.Text,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(MyTextBox.FontFamily, MyTextBox.FontStyle, MyTextBox.FontWeight, MyTextBox.FontStretch),
+                MyTextBox.FontSize,
+                Brushes.Black);
 
-            
-                for (int j = 0; j < MyText.Length; j++)
-                {
-                    string myString = MyText[j];
+            Task.Run(() =>
+            {
+                Geometry myGeom = text.BuildGeometry(new Point(-130, -120));
 
+                PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
 
-                    for (var i = 0; i < myString.Length; i++)
-                    {
-                        var ch = myString[i];
-                        Geometry myGeom = myGlyph.GetGlyphOutline(myGlyph.CharacterToGlyphMap[ch], 40, 10);
+                PickUpPen();
+                Thread.Sleep(100);
+                DrawPathGeometry(myPath);
+                PickUpPen();
+                IsDrawing = false;
+            });
 
-                        PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
-                        // Path.Data = myPath;
-                  
-                        PickUpPen();
-                        Thread.Sleep(100);
-                        DrawPathGeometry(myPath, i * 28 - 80, j * 30 - 120);
-                        PickUpPen();
-                    }
-                }
-           
-           
-
-           
 
             /*double xOld = 0, yOld = 0;
             for (double i = 0; i < Math.PI*20+1; i += Math.PI/40)
@@ -299,11 +326,9 @@ namespace WpfServo
             _pickUp = 0;
         }
 
-        private void DrawPathGeometry(PathGeometry myPath, double x0, double y0)
+        private void DrawPathGeometry(PathGeometry myPath)
         {
            
-            
-
             foreach (var fig in myPath.Figures)
             {
                 List<Point> points = new List<Point>();
@@ -343,7 +368,7 @@ namespace WpfServo
                     }
                 }
                 points.Add(points[0]);
-                points = points.Select(p => p + new Vector(x0 - 50, y0)).ToList();
+      
 
               
              
@@ -370,14 +395,13 @@ namespace WpfServo
                 _pickUp = 0;
                 for (var i = 0; i < points.Count -1; i++)
                 {
-                    MyCanvas.Children.Add(new Line()
+                    var line = new MyLine()
                     {
-                        X1 = points[i].X+100,
-                        Y1 = points[i].Y+100,
-                        X2 = points[i + 1].X+100,
-                        Y2 = points[i + 1].Y+100,
-                        Stroke = Brushes.Black,
-                        });
+                       From= points[i],
+                        To = points[i +1]
+                    };
+                    Lines.Add(line);
+                    
                 }
 
             }
@@ -406,6 +430,65 @@ namespace WpfServo
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        public class Globals
+        {
+            public SerialPort serialPort;
+
+            public void TestMethod()
+            {
+                MessageBox.Show("Запуск из скрипта!", "test");
+            }
+        }
+
+        private Script _script;
+        private void ButtonCompile_OnClick(object sender, RoutedEventArgs e)
+        {
+            _script = CSharpScript.Create(textEditor.Text, globalsType: typeof(Globals));
+            var diagnostics = _script.Compile();
+            string message = "";
+            foreach(var diagnostic in diagnostics)
+            { 
+                message += diagnostic + Environment.NewLine;
+            }
+
+            if (!String.IsNullOrEmpty(message))
+            {
+                CompilingInfo = message;
+            }
+            else
+            {
+                CompilingInfo = "Скрипт успешно скомпилирован";
+                IsScriptCorrect = true;
+            }
+        }
+
+        private void ButtonRun_OnClick(object sender, RoutedEventArgs e)
+        {
+            Globals newGlobals = new Globals(){serialPort = _serialPort};
+            _script.RunAsync(globals: newGlobals);
+        }
+
+        private void TextEditor_OnTextChanged(object sender, EventArgs e)
+        {
+            IsScriptCorrect = false;
+        }
+
+        private void ButtonFontChoise_OnClick(object sender, RoutedEventArgs e)
+        {
+            ColorFontDialog dialog = new ColorFontDialog(true, true, false);
+       
+            dialog.Font = FontInfo.GetControlFont(MyTextBox);
+            bool val = dialog.ShowDialog() ?? false;
+            if (val)
+            {
+                FontInfo font = dialog.Font;
+                if (font != null)
+                {
+                    FontInfo.ApplyFont(MyTextBox, font);
+                }
+            }
+           
         }
     }
 }
