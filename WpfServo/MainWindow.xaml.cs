@@ -23,6 +23,8 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media.Media3D;
+using System.Windows.Threading;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using WpfColorFontDialog;
@@ -40,9 +42,8 @@ namespace WpfServo
         const double ALen = 150.0;
         const double BLen = 71.0;
 
-        
-
-
+        public double BetaAngle => (Slider1Value - 1000) * 0.09 / 2 - 90;
+        public double GammaAngle => (Slider3Value - 1390) * 0.108 / 2 - 90;   // 0.108 * 2 + 1390
 
         private SerialPort _serialPort;
         public  MainWindow()
@@ -50,15 +51,29 @@ namespace WpfServo
            
             OpenComPortAsync();
 
-          //  var autoEvent = new AutoResetEvent(false);
-            Timer timer = new Timer(o =>
+            DispatcherTimer timer = new DispatcherTimer();
+            timer.Interval = new TimeSpan(0, 0, 0, 0, 50);
+            timer.Tick += (s, a) =>
             {
-                if (PathFigures.IsEmpty) return;
-                while(PathFigures.TryDequeue(out var fig))
-                    PathFigureCollection.Add(fig);
-                
-            }, null, 3000, 250);
-            //autoEvent.WaitOne();
+                if (MyLinesQueue.IsEmpty) return;
+                while (MyLinesQueue.TryDequeue(out var myLine))
+                {
+                    Line line = new Line()
+                    {
+                        X1 = myLine.From.X,
+                        Y1 = myLine.From.Y,
+                        X2 = myLine.To.X,
+                        Y2 = myLine.To.Y,
+                        Stroke = Brushes.Black,
+                        StrokeThickness = 1
+                    };
+                    MyCanvas.Children.Add(line);
+                }
+
+                    
+            };
+            timer.Start();
+
 
 
             InitializeComponent();
@@ -222,6 +237,7 @@ namespace WpfServo
 
         private void CalcServoAngles(double x, double y, double z)
         {
+            
             y *= 1.2;
             z = z + (y - 120) / 8;
             double beta = Math.Atan2(Math.Abs(y), x);
@@ -229,8 +245,7 @@ namespace WpfServo
             x -= 90 * Math.Cos(beta);
             y -= 90 * Math.Sin(beta);
 
-            double buff0 = x * x + y * y;
-            double x1 = Math.Sqrt(buff0);
+            double x1 = Math.Sqrt(x * x + y * y);
 
             double lsqr = x1*x1 + z * z;
             double l = Math.Sqrt(lsqr);
@@ -276,27 +291,24 @@ namespace WpfServo
         }
 
 
+
         public class MyLine
         {
-           
-                public Point From { get; set; }
-
-                public Point To { get; set; }
-          
+            public Point From;
+            public Point To;
         }
-
-
+        
 
         public bool IsDrawing { get; set; }
         public bool IsButtonDrawEnabled => !IsDrawing;
-        public ConcurrentQueue<PathFigure> PathFigures { get; set; } = new ConcurrentQueue<PathFigure>();
-        public PathFigureCollection PathFigureCollection { get; set; } = new PathFigureCollection();
+        public ConcurrentQueue<MyLine> MyLinesQueue { get; set; } = new ConcurrentQueue<MyLine>();
+
 
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
         {
             IsDrawing = true;
-            PathFigureCollection.Clear();
+            MyCanvas.Children.Clear();
            
 
             FormattedText text = new FormattedText(MyTextBox.Text,
@@ -342,10 +354,9 @@ namespace WpfServo
 
         private void DrawPathGeometry(PathGeometry myPath)
         {
-           
-            foreach (var fig in myPath.Figures)
+            foreach (var fig in myPath.Figures.ToList().OrderBy(o => o.StartPoint.X))
             {
-                PathFigures.Enqueue(fig);
+                
                 List<Point> points = new List<Point>();
                 foreach (var seg in fig.Segments)
                 {
@@ -374,10 +385,6 @@ namespace WpfServo
                     }
                 }
                 points.Add(points[0]);
-      
-
-              
-             
 
                 if (points.Count < 1) return;
                 _pickUp = 50;
@@ -390,6 +397,7 @@ namespace WpfServo
                 _pickUp = 0;
                 for (var i = 0; i < points.Count-1; i++)
                 {
+                    MyLinesQueue.Enqueue(new MyLine{From = points[i], To=points[i+1]});
                     DrawLine(points[i].X, points[i].Y, points[i+1].X, points[i+1].Y);
                 }
                 _pickUp = 50;
