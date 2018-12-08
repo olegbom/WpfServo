@@ -42,7 +42,7 @@
                         MouseDown="Border_MouseDown" 
                         MouseUp="Border_MouseUp" 
                         MouseMove="Border_MouseMove" >
-                    <ItemsControl ItemsSource="{Binding Lines}">
+                    <ItemsControl >
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <Canvas x:Name="MyCanvas" 
@@ -51,11 +51,16 @@
                                 </Canvas>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Line X1="{Binding From.X}" Y1="{Binding From.Y}" X2="{Binding To.X}" Y2="{Binding To.Y}" Stroke="Black" StrokeThickness="1"></Line>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
+                        
+                        <ItemsControl.Items>
+                            <Path Stroke="Black" StrokeThickness="1" >
+                                <Path.Data>
+                                    <PathGeometry Figures="{Binding PathFigureCollection}">
+                                         
+                                    </PathGeometry>
+                                </Path.Data>
+                            </Path>
+                        </ItemsControl.Items>
                     </ItemsControl>
                 </Border>
                 <TextBox  Grid.Row="8" Text ="TEST" x:Name="MyTextBox" TextWrapping="Wrap"

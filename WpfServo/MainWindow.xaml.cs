@@ -50,6 +50,16 @@ namespace WpfServo
            
             OpenComPortAsync();
 
+          //  var autoEvent = new AutoResetEvent(false);
+            Timer timer = new Timer(o =>
+            {
+                if (PathFigures.IsEmpty) return;
+                while(PathFigures.TryDequeue(out var fig))
+                    PathFigureCollection.Add(fig);
+                
+            }, null, 3000, 250);
+            //autoEvent.WaitOne();
+
 
             InitializeComponent();
 
@@ -275,15 +285,19 @@ namespace WpfServo
           
         }
 
-        public MTObservableCollection<MyLine> Lines { get; } = new MTObservableCollection<MyLine>();
+
 
         public bool IsDrawing { get; set; }
         public bool IsButtonDrawEnabled => !IsDrawing;
+        public ConcurrentQueue<PathFigure> PathFigures { get; set; } = new ConcurrentQueue<PathFigure>();
+        public PathFigureCollection PathFigureCollection { get; set; } = new PathFigureCollection();
+
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
         {
             IsDrawing = true;
-            Lines.Clear();
+            PathFigureCollection.Clear();
+           
 
             FormattedText text = new FormattedText(MyTextBox.Text,
                 CultureInfo.CurrentCulture,
@@ -331,40 +345,32 @@ namespace WpfServo
            
             foreach (var fig in myPath.Figures)
             {
+                PathFigures.Enqueue(fig);
                 List<Point> points = new List<Point>();
                 foreach (var seg in fig.Segments)
                 {
-                    if (seg is LineSegment ls)
+                    switch (seg)
                     {
-                        points.Add(ls.Point);
-                    }
-
-                    if (seg is ArcSegment arcs)
-                    {
-                        points.Add(arcs.Point);
-                    }
-
-                    if (seg is PolyLineSegment pls)
-                    {
-                        foreach (var point in pls.Points)
-                        {
-                            points.Add(point);
-                        }
-                    }
-
-                    if (seg is PolyBezierSegment pbs)
-                    {
-                        foreach (var point in pbs.Points)
-                        {
-                            points.Add(point);
-                        }
-                    }
-
-                    if (seg is BezierSegment bs)
-                    {
-                        points.Add(bs.Point1);
-                        points.Add(bs.Point2);
-                        points.Add(bs.Point3);
+                        case LineSegment ls:
+                            points.Add(ls.Point);
+                            break;
+                        case ArcSegment arcs:
+                            points.Add(arcs.Point);
+                            break;
+                        case PolyLineSegment pls:
+                            foreach (var point in pls.Points)
+                                points.Add(point);
+                            break;
+                        
+                        case PolyBezierSegment pbs:
+                            foreach (var point in pbs.Points)
+                                points.Add(point);
+                            break;
+                        case BezierSegment bs:
+                            points.Add(bs.Point1);
+                            points.Add(bs.Point2);
+                            points.Add(bs.Point3);
+                            break;
                     }
                 }
                 points.Add(points[0]);
@@ -393,17 +399,6 @@ namespace WpfServo
                     Thread.Sleep(25);
                 }
                 _pickUp = 0;
-                for (var i = 0; i < points.Count -1; i++)
-                {
-                    var line = new MyLine()
-                    {
-                       From= points[i],
-                        To = points[i +1]
-                    };
-                    Lines.Add(line);
-                    
-                }
-
             }
            
 
