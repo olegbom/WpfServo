@@ -25,10 +25,12 @@ using System.Threading.Tasks;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
+using HelixToolkit.Wpf;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using WpfColorFontDialog;
 using WpfServo.Annotations;
+using LineSegment = System.Windows.Media.LineSegment;
 
 namespace WpfServo
 {
@@ -44,6 +46,12 @@ namespace WpfServo
 
         public double BetaAngle => (Slider1Value - 1000) * 0.09 / 2 - 90;
         public double GammaAngle => (Slider3Value - 1390) * 0.108 / 2 - 90;   // 0.108 * 2 + 1390
+
+        public Model3D RoboHandBaseModel { get; set; }
+        public Model3D RoboHandServo2Model { get; set; }
+        public Model3D RoboHandShoulder1Model { get; set; }
+
+        public TranslateTransform3D RoboHandShoulder1ModelTranlate { get; set; }
 
         private SerialPort _serialPort;
         public  MainWindow()
@@ -73,13 +81,33 @@ namespace WpfServo
                     
             };
             timer.Start();
-
+            ModelLoadAsync();
 
 
             InitializeComponent();
 
             DataContext = this;
            
+        }
+
+        private async void ModelLoadAsync()
+        {
+            RoboHandBaseModel = await Task.Factory.StartNew(() =>
+            {
+                var mi = new ModelImporter();
+                return mi.Load(AppDomain.CurrentDomain.BaseDirectory + "Models\\MRobotHand.STL", null, true);
+
+            });
+
+            RoboHandServo2Model = await Task.Factory.StartNew(() =>
+            {
+                var mi = new ModelImporter();
+                return mi.Load(AppDomain.CurrentDomain.BaseDirectory + "Models\\Servo2.STL", null, true);
+                
+            });
+            Rect3D rect = RoboHandServo2Model.Bounds;
+            RoboHandShoulder1ModelTranlate = new TranslateTransform3D(-rect.SizeX / 2, 55, -rect.SizeZ / 2);
+
         }
 
         public bool IsFindComPort { get; set; } = false;

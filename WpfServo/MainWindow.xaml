@@ -99,9 +99,16 @@
         <TabItem Header="3D">
             <h:HelixViewport3D x:Name="view1" CameraRotationMode="Turntable" ModelUpDirection="0,1,0" ShowCoordinateSystem="True">
                 <h:HelixViewport3D.Camera>
-                    <PerspectiveCamera Position="5, 30, 40"  LookDirection="-5, -30, -40" FieldOfView="45" UpDirection="0,1,0"/>
+                    <PerspectiveCamera Position="50, 300, 400"  LookDirection="-50, -300, -400" FieldOfView="45" UpDirection="0,1,0"/>
                 </h:HelixViewport3D.Camera>
                 <h:DefaultLights/>
+                <ModelVisual3D Content="{Binding RoboHandBaseModel}" Transform="{h:Translate -101,0,-101}">
+                   
+                </ModelVisual3D>
+
+                <ModelVisual3D Content="{Binding RoboHandServo2Model}" Transform="{Binding RoboHandShoulder1ModelTranlate}">
+
+                </ModelVisual3D>
                 <h:CubeVisual3D Center="0,0,0" SideLength="10" Fill="Gray" >
                     <h:CubeVisual3D.Transform>
                         <Transform3DGroup>
