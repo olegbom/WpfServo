@@ -237,8 +237,6 @@ namespace WpfServo
 
         private void CalcServoAngles(double x, double y, double z)
         {
-            
-            y *= 1.2;
             z = z + (y - 120) / 8;
             double beta = Math.Atan2(Math.Abs(y), x);
 
@@ -320,7 +318,7 @@ namespace WpfServo
 
             Task.Run(() =>
             {
-                Geometry myGeom = text.BuildGeometry(new Point(-130, -120));
+                Geometry myGeom = text.BuildGeometry(new Point(-130, -200));
 
                 PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
 

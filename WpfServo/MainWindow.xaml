@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
         xmlns:h="clr-namespace:HelixToolkit.Wpf;assembly=HelixToolkit.Wpf"
-        Title="{Binding WindowTitle}" Height="350" Width="525" Closing="Window_Closing">
+        Title="{Binding WindowTitle}" Height="600" Width="800" Closing="Window_Closing">
     <TabControl>
         <TabItem Header="Управление">
             <Grid>
@@ -16,6 +16,7 @@
                     <RowDefinition Height="Auto"></RowDefinition>
                     <RowDefinition Height="Auto"></RowDefinition>
                     <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="Auto"></RowDefinition>
                     <RowDefinition Height="Auto"></RowDefinition>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -35,7 +36,7 @@
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Value, ElementName=Slider4}" Width="70"></TextBox>
                 <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Value, ElementName=Slider5}" Width="70"></TextBox>
                 <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Value, ElementName=Slider6}" Width="70"></TextBox>
-                <Button Grid.Row="6" Grid.Column="1" Click="ButtonFontChoise_OnClick" Margin="2">
+                <Button Grid.Row="8" Grid.Column="1" Click="ButtonFontChoise_OnClick" Margin="2">
                     Шрифт
                 </Button>
      
@@ -52,10 +53,15 @@
                 </Border>
               
                 
-                <TextBox  Grid.Row="8" Text ="TEST" x:Name="MyTextBox" TextWrapping="Wrap"
+                <TextBox  Grid.Row="8" Grid.RowSpan="2" Text ="TEST" x:Name="MyTextBox" TextWrapping="Wrap"
                   VerticalScrollBarVisibility="Visible"
-                  AcceptsReturn="True"  Height="40"></TextBox>
-                <Button Click="ButtonBase_OnClick" Grid.Row="8" Grid.Column="1" IsEnabled="{Binding IsButtonDrawEnabled}">Рисовать</Button>
+                  AcceptsReturn="True"  Height="80"></TextBox>
+                <Button Click="ButtonBase_OnClick" Grid.Row="9" 
+                        Grid.Column="1" 
+                        IsEnabled="{Binding IsButtonDrawEnabled}"
+                        Margin="2">
+                    Рисовать
+                </Button>
 
             </Grid>
         </TabItem>
