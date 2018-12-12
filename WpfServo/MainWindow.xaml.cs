@@ -42,7 +42,7 @@ namespace WpfServo
 
 
         const double ALen = 150.0;
-        const double BLen = 71.0;
+        const double BLen = 66.0;
 
         public double BetaAngle => (Slider1Value - 1000) * 0.09 / 2 - 90;
         public double GammaAngle => (Slider3Value - 1390) * 0.108 / 2 - 90;   // 0.108 * 2 + 1390
@@ -85,7 +85,7 @@ namespace WpfServo
                     
             };
             timer.Start();
-            ModelLoadAsync();
+           // ModelLoadAsync();
 
 
             InitializeComponent();
@@ -280,9 +280,9 @@ namespace WpfServo
            
         }
 
-        private void CalcServoAngles(double x, double y, double z)
+        public void CalcServoAngles(double x, double y, double z)
         {
-            z = z + (y - 120) / 8;
+           // z = z + (y - 120) / 8;
             double beta = Math.Atan2(Math.Abs(y), x);
 
             double x1 = Math.Sqrt(x * x + y * y);
@@ -307,9 +307,9 @@ namespace WpfServo
             double theta = anglelx1 + anglebb1;
            // theta -= Math.PI/2;
             double betaTicks = beta * 180 / Math.PI / 0.09 * 2 + 1000;
-            double gammaTicks = gamma * 180 / Math.PI / 0.108 * 2 + 1390;
+            double gammaTicks = gamma * 180 / Math.PI / 0.108 * 2 + 1590;
             double phiTicks = phi * 180 / Math.PI / 0.11 * 2 + 1350;
-            double thetaTicks = theta * 180 / Math.PI / 0.086 * 2 + 1000;
+            double thetaTicks = theta * 180 / Math.PI / 0.086 * 2 + 1050;
 
             thetaTicks -= _pickUp;
 
@@ -321,7 +321,7 @@ namespace WpfServo
 
         }
 
-        private double Z = 150, _x = 0, _y = 100, _pickUp = 0;
+        public double Z = 150, _x = 0, _y = 100, _pickUp = 0;
 
         private void Slider_ZChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -360,7 +360,7 @@ namespace WpfServo
 
             Task.Run(() =>
             {
-                Geometry myGeom = text.BuildGeometry(new Point(-130, -120));
+                Geometry myGeom = text.BuildGeometry(new Point(-130, -180));
 
                 PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
 
@@ -484,10 +484,16 @@ namespace WpfServo
             }
         }
 
+        public void Delay(int ms)
+        {
+            Thread.Sleep(ms);
+        }
+
         private Script _script;
         private void ButtonCompile_OnClick(object sender, RoutedEventArgs e)
         {
-            _script = CSharpScript.Create(textEditor.Text, globalsType: typeof(Globals));
+            _script = CSharpScript.Create(textEditor.Text, globalsType: typeof(MainWindow));
+            
             var diagnostics = _script.Compile();
             string message = "";
             foreach(var diagnostic in diagnostics)
@@ -509,7 +515,7 @@ namespace WpfServo
         private void ButtonRun_OnClick(object sender, RoutedEventArgs e)
         {
             Globals newGlobals = new Globals(){serialPort = _serialPort};
-            _script.RunAsync(globals: newGlobals);
+            _script.RunAsync(globals: this);
         }
 
         private void TextEditor_OnTextChanged(object sender, EventArgs e)
