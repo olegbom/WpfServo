@@ -54,6 +54,10 @@ namespace WpfServo
         public TranslateTransform3D RoboHandShoulder1ModelTranlate { get; set; }
 
         private SerialPort _serialPort;
+
+        private Timer _serialPortTimer;
+        private bool _programClosing;
+
         public  MainWindow()
         {
            
@@ -120,7 +124,7 @@ namespace WpfServo
         private SerialPort FindComPort()
         {
             SerialPort serialPort = null;
-            while (true)
+            while (!_programClosing)
             {
                 ManagementObjectSearcher searcher =
                     new ManagementObjectSearcher("root\\CIMV2",
@@ -131,7 +135,7 @@ namespace WpfServo
                     string name = queryObj["Name"].ToString();
                     if (name.Contains("STLink Virtual COM Port"))
                     {
-                        serialPort = new SerialPort(queryObj["DeviceID"].ToString(), 115200,
+                        serialPort = new SerialPort(queryObj["DeviceID"].ToString(), 921600,
                             Parity.None,
                             8,
                             StopBits.One);
@@ -151,49 +155,60 @@ namespace WpfServo
         {
             _serialPort = await Task.Run(() => FindComPort());
             _serialPort.Open();
+
+            _serialPortTimer = new Timer((o) =>
+            {
+                SendServoValue(4, (UInt16)Slider5Value);
+                SendServoValue(0, (UInt16)Slider1Value);
+                SendServoValue(3, (UInt16)Slider4Value);
+                SendServoValue(2, (UInt16)Slider3Value);
+                SendServoValue(1, (UInt16)Slider2Value);
+                SendServoValue(5, (UInt16)Slider6Value);
+            }, null, 100, 20);
+            
         }
 
         public double Slider1Value { get; set; } = 3000;
 
-        public void OnSlider1ValueChanged()
-        {
-            SendServoValue(0, (UInt16)Slider1Value);
-        }
+        //public void OnSlider1ValueChanged()
+        //{
+        //    SendServoValue(0, (UInt16)Slider1Value);
+        //}
 
         public double Slider2Value { get; set; } = 3000;
 
-        public void OnSlider2ValueChanged()
-        {
-            SendServoValue(1, (UInt16)Slider2Value);
-        }
+        //public void OnSlider2ValueChanged()
+        //{
+        //    SendServoValue(1, (UInt16)Slider2Value);
+        //}
 
         public double Slider3Value { get; set; } = 3000;
 
-        public void OnSlider3ValueChanged()
-        {
-            SendServoValue(2, (UInt16)Slider3Value);
-        }
+        //public void OnSlider3ValueChanged()
+        //{
+        //    SendServoValue(2, (UInt16)Slider3Value);
+        //}
 
         public double Slider4Value { get; set; } = 3000;
 
-        public void OnSlider4ValueChanged()
-        {
-            SendServoValue(3, (UInt16)Slider4Value);
-        }
+        //public void OnSlider4ValueChanged()
+        //{
+        //    SendServoValue(3, (UInt16)Slider4Value);
+        //}
 
         public double Slider5Value { get; set; } = 3000;
 
-        public void OnSlider5ValueChanged()
-        {
-            SendServoValue(4, (UInt16)Slider5Value);
-        }
+        //public void OnSlider5ValueChanged()
+        //{
+        //    SendServoValue(4, (UInt16)Slider5Value);
+        //}
 
         public double Slider6Value { get; set; } = 3000;
 
-        public void OnSlider6ValueChanged()
-        {
-            SendServoValue(5, (UInt16)Slider6Value);
-        }
+        //public void OnSlider6ValueChanged()
+        //{
+        //    SendServoValue(5, (UInt16)Slider6Value);
+        //}
 
         private void SendServoValue(int channel, UInt16 value)
         {
@@ -209,6 +224,8 @@ namespace WpfServo
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _serialPort?.Close();
+            _serialPortTimer?.Dispose();
+            _programClosing = true;
         }
         
         double old1, old2;
@@ -267,9 +284,6 @@ namespace WpfServo
         {
             z = z + (y - 120) / 8;
             double beta = Math.Atan2(Math.Abs(y), x);
-
-            x -= 90 * Math.Cos(beta);
-            y -= 90 * Math.Sin(beta);
 
             double x1 = Math.Sqrt(x * x + y * y);
 
@@ -346,7 +360,7 @@ namespace WpfServo
 
             Task.Run(() =>
             {
-                Geometry myGeom = text.BuildGeometry(new Point(-130, -200));
+                Geometry myGeom = text.BuildGeometry(new Point(-130, -120));
 
                 PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
 
