@@ -3,142 +3,190 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
         xmlns:h="clr-namespace:HelixToolkit.Wpf;assembly=HelixToolkit.Wpf"
-        Title="{Binding WindowTitle}" Height="600" Width="800" Closing="Window_Closing">
-    <TabControl>
-        <TabItem Header="Управление">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="*"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                    <ColumnDefinition Width="Auto"></ColumnDefinition>
-                </Grid.ColumnDefinitions>
-                <Slider x:Name="Slider1" Grid.Row="0" Minimum="0" Maximum="5000" Value ="{Binding Slider1Value}" ></Slider>
-                <Slider x:Name="Slider2" Grid.Row="1" Minimum="0" Maximum="5000" Value ="{Binding Slider2Value}" ></Slider>
-                <Slider x:Name="Slider3" Grid.Row="2" Minimum="0" Maximum="5000" Value ="{Binding Slider3Value}" ></Slider>
-                <Slider x:Name="Slider4" Grid.Row="3" Minimum="0" Maximum="6000" Value ="{Binding Slider4Value}" ></Slider>
-                <Slider x:Name="Slider5" Grid.Row="4" Minimum="0" Maximum="5000" Value ="{Binding Slider5Value}" ></Slider>
-                <Slider x:Name="Slider6" Grid.Row="5" Minimum="0" Maximum="5000" Value ="{Binding Slider6Value}" ></Slider>
-                <Slider x:Name="Slider7" Grid.Row="6" Minimum="0" Maximum="200" Value ="150"  ValueChanged="Slider_ZChanged"></Slider>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Value, ElementName=Slider1}" Width="70"></TextBox>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Value, ElementName=Slider2}" Width="70"></TextBox>
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Value, ElementName=Slider3}" Width="70"></TextBox>
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Value, ElementName=Slider4}" Width="70"></TextBox>
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Value, ElementName=Slider5}" Width="70"></TextBox>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Value, ElementName=Slider6}" Width="70"></TextBox>
-                <Button Grid.Row="8" Grid.Column="1" Click="ButtonFontChoise_OnClick" Margin="2">
-                    Шрифт
-                </Button>
-     
-                <Border  Grid.Row="7" Grid.ColumnSpan="2"
-                         Background="AliceBlue" 
+        Title="{Binding WindowTitle}" Height="700" Width="1300" Closing="Window_Closing">
+   
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <Slider x:Name="Slider1" Grid.Row="0" Minimum="0" Maximum="5000" Value ="{Binding Slider1Value}" ></Slider>
+        <Slider x:Name="Slider2" Grid.Row="1" Minimum="0" Maximum="5000" Value ="{Binding Slider2Value}" ></Slider>
+        <Slider x:Name="Slider3" Grid.Row="2" Minimum="0" Maximum="5000" Value ="{Binding Slider3Value}" ></Slider>
+        <Slider x:Name="Slider4" Grid.Row="3" Minimum="0" Maximum="6000" Value ="{Binding Slider4Value}" ></Slider>
+        <Slider x:Name="Slider5" Grid.Row="4" Minimum="0" Maximum="5000" Value ="{Binding Slider5Value}" ></Slider>
+        <Slider x:Name="Slider6" Grid.Row="5" Minimum="0" Maximum="5000" Value ="{Binding Slider6Value}" ></Slider>
+        <Slider x:Name="Slider7" Grid.Row="6" Minimum="0" Maximum="200" Value ="150"  ValueChanged="Slider_ZChanged"></Slider>
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Value, ElementName=Slider1}" Width="70"></TextBox>
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Value, ElementName=Slider2}" Width="70"></TextBox>
+        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Value, ElementName=Slider3}" Width="70"></TextBox>
+        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Value, ElementName=Slider4}" Width="70"></TextBox>
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Value, ElementName=Slider5}" Width="70"></TextBox>
+        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Value, ElementName=Slider6}" Width="70"></TextBox>
+        <Button Grid.Row="8" Grid.Column="1" Click="ButtonFontChoise_OnClick" Margin="2" Content="Шрифт"/>
+
+        <Grid Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <TabControl Grid.Column="0">
+                <TabItem Header="Управление">
+                    <Border 
+                     Background="AliceBlue" 
                     MouseDown="Border_MouseDown" 
                     MouseUp="Border_MouseUp" 
-                    MouseMove="Border_MouseMove" >
+                    MouseMove="Border_MouseMove"
+                     MouseLeave="Border_OnMouseLeave">
                      <Canvas x:Name="MyCanvas" 
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     RenderTransform="1 0 0 1 0 0">
+                         <TextBlock x:Name="GhostTextBlock"
+                                    Text="{Binding ElementName=MyTextBox, Path=Text}" 
+                                    Canvas.Left="{Binding TextPosX}" 
+                                    Canvas.Top="{Binding TextPosY}"
+                                    FontFamily="{Binding ElementName=MyTextBox, Path=FontFamily}"
+                                    FontStretch="{Binding ElementName=MyTextBox, Path=FontStretch}"
+                                    FontStyle="{Binding ElementName=MyTextBox, Path=FontStyle}"
+                                    FontWeight="{Binding ElementName=MyTextBox, Path=FontWeight}"
+                                    FontSize="{Binding ElementName=MyTextBox, Path=FontSize}"
+                                    Foreground="#FFAAAAAA"
+                                    MouseDown="GhostTextBlock_OnMouseDown" Cursor="SizeAll"/>
                      </Canvas>
-               
-                </Border>
-              
-                
-                <TextBox  Grid.Row="8" Grid.RowSpan="2" Text ="TEST" x:Name="MyTextBox" TextWrapping="Wrap"
-                  VerticalScrollBarVisibility="Visible"
-                  AcceptsReturn="True"  Height="80"></TextBox>
-                <Button Click="ButtonBase_OnClick" Grid.Row="9" 
-                        Grid.Column="1" 
-                        IsEnabled="{Binding IsButtonDrawEnabled}"
-                        Margin="2">
-                    Рисовать
-                </Button>
+       
+                    </Border>
+                </TabItem>
+                <TabItem Header="Код">
+                    <Grid>
 
-            </Grid>
-        </TabItem>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                            <RowDefinition></RowDefinition>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                            <RowDefinition></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Margin="3,1,3,1"  Click="ButtonCompile_OnClick">Компилировать</Button>
+                            <Button Margin="3,1,3,1" Click="ButtonRun_OnClick" Visibility ="{Binding ButtonRunVisible}">Запустить</Button>
+                        </StackPanel>
+                        <avalonedit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+                                               Margin="3"
+                                               ShowLineNumbers="True"
+                                               Grid.Row="1"
+                                               Name="textEditor"
+                                               SyntaxHighlighting="C#"
+                                               FontFamily="Consolas"
+                                               FontSize="12pt" TextChanged="TextEditor_OnTextChanged">
 
-        <TabItem Header="Код">
-            <Grid>
-                
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition></RowDefinition>
-                </Grid.RowDefinitions> 
-                <StackPanel Orientation="Horizontal">
-                    <Button Margin="3,1,3,1"  Click="ButtonCompile_OnClick">Компилировать</Button>
-                    <Button Margin="3,1,3,1" Click="ButtonRun_OnClick" Visibility ="{Binding ButtonRunVisible}">Запустить</Button>
-                </StackPanel>
-                <avalonedit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
-                                       Margin="3"
-                                       Grid.Row="1"
-                                       Name="textEditor"
-                                       SyntaxHighlighting="C#"
-                                       FontFamily="Consolas"
-                                       FontSize="12pt" TextChanged="TextEditor_OnTextChanged">
-
-                </avalonedit:TextEditor>
-                <ScrollViewer Grid.Row="3">
-                    <TextBlock  HorizontalAlignment="Stretch" 
-                                VerticalAlignment="Top" 
-                                Text="{Binding CompilingInfo}"
-                                />
-                </ScrollViewer>
-
-                
-
-                <GridSplitter Grid.Row="2" Background="Black" Height="2" VerticalAlignment="Center" HorizontalAlignment="Stretch"></GridSplitter>
+                        </avalonedit:TextEditor>
+                        <ScrollViewer Grid.Row="3">
+                            <TextBlock  HorizontalAlignment="Stretch" 
+                                        VerticalAlignment="Top" 
+                                        Text="{Binding CompilingInfo}"/>
+                        </ScrollViewer>
+                        <GridSplitter Grid.Row="2" Background="Black" Height="2" VerticalAlignment="Center" HorizontalAlignment="Stretch"></GridSplitter>
+                    </Grid>
+                </TabItem>
+            </TabControl>
             
-            </Grid>
-           
-        </TabItem>
-        <TabItem Header="3D">
-            <h:HelixViewport3D x:Name="view1" CameraRotationMode="Turntable" ModelUpDirection="0,1,0" ShowCoordinateSystem="True">
+            <GridSplitter Grid.Column="1" Background="Black" Width="2" VerticalAlignment="Stretch" HorizontalAlignment="Center"></GridSplitter>
+            <h:HelixViewport3D Grid.Column="2"  x:Name="view1" CameraRotationMode="Turntable" ModelUpDirection="0,1,0" ShowCoordinateSystem="True" Background="Black">
                 <h:HelixViewport3D.Camera>
                     <PerspectiveCamera Position="50, 300, 400"  LookDirection="-50, -300, -400" FieldOfView="45" UpDirection="0,1,0"/>
                 </h:HelixViewport3D.Camera>
                 <h:DefaultLights/>
                 <ModelVisual3D Content="{Binding RoboHandBaseModel}" Transform="{h:Translate -101,0,-101}">
-                   
+
                 </ModelVisual3D>
 
                 <ModelVisual3D Content="{Binding RoboHandServo2Model}" Transform="{Binding RoboHandShoulder1ModelTranlate}">
 
+                <h:LinesVisual3D Color="White" Thickness="1" Points="{Binding Points3D}">
+
+                </h:LinesVisual3D>
+
                 </ModelVisual3D>
-                <h:CubeVisual3D Center="0,0,0" SideLength="10" Fill="Gray" >
-                    <h:CubeVisual3D.Transform>
+                <h:BoxVisual3D Center="0,0,0" Width="30" Height="66" Length="56" Fill="Gray" >
+                    <h:BoxVisual3D.Transform>
                         <Transform3DGroup>
-                            <RotateTransform3D>
-                                <RotateTransform3D.Rotation>
-                                    <AxisAngleRotation3D Axis="1,0,0" Angle="{Binding GammaAngle}"/>
-                                </RotateTransform3D.Rotation>
-                            </RotateTransform3D>
+                           
+
                             <RotateTransform3D>
                                 <RotateTransform3D.Rotation>
                                     <AxisAngleRotation3D Axis="0,1,0" Angle="{Binding BetaAngle}"/>
                                 </RotateTransform3D.Rotation>
                             </RotateTransform3D>
-                            
                         </Transform3DGroup>
-                    </h:CubeVisual3D.Transform>
-                    <h:CubeVisual3D Center="0,50,0" SideLength="10">
-
-                    </h:CubeVisual3D>
-                </h:CubeVisual3D>
+                    </h:BoxVisual3D.Transform>
+                    <h:BoxVisual3D  Center="0,0,0" Width="30" Height="66" Length="56" Fill="Gray">
+                        <h:BoxVisual3D.Transform>
+                            <Transform3DGroup>
+                                <RotateTransform3D>
+                                    <RotateTransform3D.Rotation>
+                                        <AxisAngleRotation3D Axis="1,0,0" Angle="{Binding GammaAngle}"></AxisAngleRotation3D>
+                                    </RotateTransform3D.Rotation>
+                                </RotateTransform3D> 
+                                <TranslateTransform3D  OffsetY="{Binding ALen}"/>
+                                <RotateTransform3D>
+                                    <RotateTransform3D.Rotation>
+                                        <AxisAngleRotation3D Axis="1,0,0" Angle="{Binding PhiAngle}"/>
+                                    </RotateTransform3D.Rotation>
+                                </RotateTransform3D>
+                            </Transform3DGroup>
+                        </h:BoxVisual3D.Transform>
+                        <h:BoxVisual3D  Center="0,0,0" Width="20" Height="37" Length="40" Fill="Gray">
+                            <h:BoxVisual3D.Transform>
+                                <Transform3DGroup>
+                                    
+                                    <TranslateTransform3D  OffsetZ="{Binding BLen}"/>
+                                </Transform3DGroup>
+                            </h:BoxVisual3D.Transform>
+                            <h:BoxVisual3D Center="0,0,0" Height="7" Width="60" Length="7" Fill="Gray">
+                                <h:BoxVisual3D.Transform>
+                                    <Transform3DGroup>
+                                        
+                                        <TranslateTransform3D  OffsetY="-40"/>
+                                        <RotateTransform3D>
+                                            <RotateTransform3D.Rotation>
+                                                <AxisAngleRotation3D Axis="1,0,0" Angle="{Binding ThetaAngle}"></AxisAngleRotation3D>
+                                            </RotateTransform3D.Rotation>
+                                        </RotateTransform3D>
+                                    </Transform3DGroup>
+                                </h:BoxVisual3D.Transform>
+                            </h:BoxVisual3D>
+                        </h:BoxVisual3D>
+                    </h:BoxVisual3D>
+                </h:BoxVisual3D>
                 <h:CoordinateSystemVisual3D ArrowLengths="10"/>
-                <h:GridLinesVisual3D Normal="0,1,0" LengthDirection="1,0,0"/>
+                <h:GridLinesVisual3D Normal="0,1,0" LengthDirection="1,0,0" Length="300" Width="300"  MajorDistance="10" MinorDistance="5"/>
             </h:HelixViewport3D>
-        </TabItem>
-    </TabControl>
-    
+        </Grid>
+        
+      
+        
+        <TextBox  Grid.Row="8" Grid.RowSpan="2" Text ="TEST" x:Name="MyTextBox" TextWrapping="Wrap"
+          VerticalScrollBarVisibility="Visible"
+          AcceptsReturn="True"  Height="80"></TextBox>
+        <Button Click="ButtonBase_OnClick" Grid.Row="9" 
+                Grid.Column="1" 
+                IsEnabled="{Binding IsButtonDrawEnabled}"
+                Margin="2" Content="Рисовать"/>
+            
+        
+
+    </Grid>
+
 </Window>

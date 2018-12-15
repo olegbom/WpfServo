@@ -41,17 +41,23 @@ namespace WpfServo
     {
 
 
-        const double ALen = 150.0;
-        const double BLen = 66.0;
+        public double ALen { get; private set; } = 150.0;
+        public double BLen { get; private set; } = 66.0;
 
-        public double BetaAngle => (Slider1Value - 1000) * 0.09 / 2 - 90;
-        public double GammaAngle => (Slider3Value - 1390) * 0.108 / 2 - 90;   // 0.108 * 2 + 1390
+        public double BetaAngle => ((UInt16)Slider1Value/40*40 - 1000) * 0.09 / 2 - 90;
+        public double GammaAngle =>  ((UInt16)Slider3Value / 40 * 40 - 1590) * 0.108 / 2 - 90 ;   // 0.108 * 2 + 1390
+ 
+        public double PhiAngle =>   90- ((UInt16)Slider4Value / 40 * 40 - 1350) * 0.11 / 2 ;
+        public double ThetaAngle =>    ((UInt16)Slider5Value / 40 * 40 - 1050) * 0.086 / 2 - 90;
 
         public Model3D RoboHandBaseModel { get; set; }
         public Model3D RoboHandServo2Model { get; set; }
         public Model3D RoboHandShoulder1Model { get; set; }
 
         public TranslateTransform3D RoboHandShoulder1ModelTranlate { get; set; }
+
+        public Point3DCollection Points3D {get; set;} = new Point3DCollection(1000);
+
 
         private SerialPort _serialPort;
 
@@ -60,29 +66,41 @@ namespace WpfServo
 
         public  MainWindow()
         {
-           
+            Points3D.Add(new Point3D(0,0,0));
             OpenComPortAsync();
 
             DispatcherTimer timer = new DispatcherTimer();
             timer.Interval = new TimeSpan(0, 0, 0, 0, 50);
             timer.Tick += (s, a) =>
             {
-                if (MyLinesQueue.IsEmpty) return;
-                while (MyLinesQueue.TryDequeue(out var myLine))
-                {
-                    Line line = new Line()
+                if (!MyLinesQueue.IsEmpty) 
+                    while (MyLinesQueue.TryDequeue(out var myLine))
                     {
-                        X1 = myLine.From.X,
-                        Y1 = myLine.From.Y,
-                        X2 = myLine.To.X,
-                        Y2 = myLine.To.Y,
-                        Stroke = Brushes.Black,
-                        StrokeThickness = 1
-                    };
-                    MyCanvas.Children.Add(line);
-                }
+                        Line line = new Line()
+                        {
+                            X1 = myLine.From.X,
+                            Y1 = myLine.From.Y,
+                            X2 = myLine.To.X,
+                            Y2 = myLine.To.Y,
+                            Stroke = Brushes.Black,
+                            StrokeThickness = 1
+                        };
+                        MyCanvas.Children.Add(line);
+                    }
+                if(!MyPoint3DQueue.IsEmpty)
+                    while (MyPoint3DQueue.TryDequeue(out var point))
+                    {
+                        if (Points3D.Count == 1000)
+                        {
+                            Points3D.RemoveAt(0);
+                            Points3D.RemoveAt(0);
+                        }
+                        Points3D.Add(point);
+                        Points3D.Add(point);
+                    }
 
-                    
+
+
             };
             timer.Start();
            // ModelLoadAsync();
@@ -154,7 +172,7 @@ namespace WpfServo
         private async void OpenComPortAsync()
         {
             _serialPort = await Task.Run(() => FindComPort());
-            _serialPort.Open();
+            _serialPort?.Open();
 
             _serialPortTimer = new Timer((o) =>
             {
@@ -169,46 +187,12 @@ namespace WpfServo
         }
 
         public double Slider1Value { get; set; } = 3000;
-
-        //public void OnSlider1ValueChanged()
-        //{
-        //    SendServoValue(0, (UInt16)Slider1Value);
-        //}
-
         public double Slider2Value { get; set; } = 3000;
-
-        //public void OnSlider2ValueChanged()
-        //{
-        //    SendServoValue(1, (UInt16)Slider2Value);
-        //}
-
         public double Slider3Value { get; set; } = 3000;
-
-        //public void OnSlider3ValueChanged()
-        //{
-        //    SendServoValue(2, (UInt16)Slider3Value);
-        //}
-
         public double Slider4Value { get; set; } = 3000;
-
-        //public void OnSlider4ValueChanged()
-        //{
-        //    SendServoValue(3, (UInt16)Slider4Value);
-        //}
-
         public double Slider5Value { get; set; } = 3000;
-
-        //public void OnSlider5ValueChanged()
-        //{
-        //    SendServoValue(4, (UInt16)Slider5Value);
-        //}
-
         public double Slider6Value { get; set; } = 3000;
 
-        //public void OnSlider6ValueChanged()
-        //{
-        //    SendServoValue(5, (UInt16)Slider6Value);
-        //}
 
         private void SendServoValue(int channel, UInt16 value)
         {
@@ -227,23 +211,22 @@ namespace WpfServo
             _serialPortTimer?.Dispose();
             _programClosing = true;
         }
-        
-        double old1, old2;
-        Point mDownPos;
-        Point mUpPos;
-        bool isDown;
-      
+
+
+
+
+        private Point mDownPos;
+        private Point mMovePos;
+        private bool isDown;
+        private bool isGhostTestDown;
+        private Point oldGhostTextDownPos;
 
         private void Border_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            var border = (Border) sender;
-            mDownPos = e.GetPosition(border);
+             mDownPos = e.GetPosition(MyCanvas);
 
-            var width = border.ActualWidth;
-            var height = border.ActualHeight;
-
-            _x = (mDownPos.X / width -0.5)*150;
-            _y = (1-mDownPos.Y / height) * 100;
+            _x =  mDownPos.X ;
+            _y = -mDownPos.Y ;
 
             isDown = true;
             CalcServoAngles(_x, _y, Z+5);
@@ -255,33 +238,46 @@ namespace WpfServo
             {
                 isDown = false;
                 CalcServoAngles(_x, _y, Z+5);
-
             }
+
+            isGhostTestDown = false;
         }
 
         private void Border_MouseMove(object sender, MouseEventArgs e)
         {
             if (isDown)
             {
-
-                var canvas = (Border)sender;
-                mDownPos = e.GetPosition(canvas);
-
-                var width = canvas.ActualWidth;
-                var height = canvas.ActualHeight;
-
-                _x = (mDownPos.X / width - 0.5) * 150;
-                _y = (1-mDownPos.Y / height) * 100;
-
-               
+                mMovePos = e.GetPosition(MyCanvas);
+                _x = mMovePos.X;
+                _y = -mMovePos.Y;
                 CalcServoAngles(_x, _y, Z);
-
             }
-           
+
+            if (isGhostTestDown)
+            {
+                mMovePos = e.GetPosition(MyCanvas);
+                TextPosX = oldGhostTextDownPos.X - mDownPos.X + mMovePos.X;
+                TextPosY = oldGhostTextDownPos.Y - mDownPos.Y + mMovePos.Y;
+            }
+        }
+
+        private void GhostTextBlock_OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            mDownPos = e.GetPosition(MyCanvas);
+            oldGhostTextDownPos = new Point(TextPosX, TextPosY);
+            isGhostTestDown = true;
+        }
+
+
+        private void Border_OnMouseLeave(object sender, MouseEventArgs e)
+        {
+            isGhostTestDown = false;
+            isDown = false;
         }
 
         public void CalcServoAngles(double x, double y, double z)
         {
+            z += _pickUp;
            // z = z + (y - 120) / 8;
             double beta = Math.Atan2(Math.Abs(y), x);
 
@@ -303,21 +299,48 @@ namespace WpfServo
             double phi = anglelx1 - angleaa1 + Math.PI/2;
             double gamma =  Math.PI - anglebb1 - angleaa1;
 
-            
+           
+
             double theta = anglelx1 + anglebb1;
+            //TEST
+            //theta = Math.PI / 2;
+            //gamma = Math.PI / 2;
+            //phi = Math.PI / 2;
+           
+            //END TEST
            // theta -= Math.PI/2;
             double betaTicks = beta * 180 / Math.PI / 0.09 * 2 + 1000;
             double gammaTicks = gamma * 180 / Math.PI / 0.108 * 2 + 1590;
             double phiTicks = phi * 180 / Math.PI / 0.11 * 2 + 1350;
             double thetaTicks = theta * 180 / Math.PI / 0.086 * 2 + 1050;
 
-            thetaTicks -= _pickUp;
-
-
+            //thetaTicks -= _pickUp;
+           
+            
             Slider5Value = thetaTicks;
             Slider1Value = betaTicks;
             Slider4Value = phiTicks;
             Slider3Value = gammaTicks;
+
+
+            RotateTransform3D transform1 = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), BetaAngle));
+            RotateTransform3D transform2 = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(1, 0, 0), PhiAngle));
+            TranslateTransform3D transform3 = new TranslateTransform3D(0, ALen, 0);
+
+            RotateTransform3D transform4 = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(1,0,0), GammaAngle));
+            TranslateTransform3D transform5 = new TranslateTransform3D(0, 0, BLen);
+            RotateTransform3D transform6 = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(1,0,0), ThetaAngle));
+            TranslateTransform3D transform7 = new TranslateTransform3D(0, -40, 0);
+            Transform3DGroup generalTransform = new Transform3DGroup();
+            
+            generalTransform.Children.Add(transform7);
+            generalTransform.Children.Add(transform6);
+            generalTransform.Children.Add(transform5);
+            generalTransform.Children.Add(transform4);
+            generalTransform.Children.Add(transform3);
+            generalTransform.Children.Add(transform2);
+            generalTransform.Children.Add(transform1);
+            MyPoint3DQueue.Enqueue(new Point3D(generalTransform.Value.OffsetX, generalTransform.Value.OffsetY, generalTransform.Value.OffsetZ));
 
         }
 
@@ -330,7 +353,8 @@ namespace WpfServo
             CalcServoAngles(_x, _y, Z);
         }
 
-
+        public double TextPosX { get; set; } = -130;
+        public double TextPosY { get; set; } = -180;
 
         public class MyLine
         {
@@ -342,14 +366,16 @@ namespace WpfServo
         public bool IsDrawing { get; set; }
         public bool IsButtonDrawEnabled => !IsDrawing;
         public ConcurrentQueue<MyLine> MyLinesQueue { get; set; } = new ConcurrentQueue<MyLine>();
-
-
+        public ConcurrentQueue<Point3D> MyPoint3DQueue { get; set; } = new ConcurrentQueue<Point3D>();
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
         {
             IsDrawing = true;
             MyCanvas.Children.Clear();
-           
+            MyCanvas.Children.Add(GhostTextBlock);
+            Point3D point = Points3D.Last();
+            Points3D.Clear();
+            Points3D.Add(point);
 
             FormattedText text = new FormattedText(MyTextBox.Text,
                 CultureInfo.CurrentCulture,
@@ -360,7 +386,7 @@ namespace WpfServo
 
             Task.Run(() =>
             {
-                Geometry myGeom = text.BuildGeometry(new Point(-130, -180));
+                Geometry myGeom = text.BuildGeometry(new Point(TextPosX, TextPosY));
 
                 PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
 
@@ -387,7 +413,7 @@ namespace WpfServo
 
         private void PickUpPen()
         {
-            _pickUp = 50;
+            _pickUp = 10;
             CalcServoAngles(_x, _y, Z + 20);
             _pickUp = 0;
         }
@@ -396,7 +422,7 @@ namespace WpfServo
         {
             foreach (var fig in myPath.Figures.ToList().OrderBy(o => o.StartPoint.X))
             {
-                
+               
                 List<Point> points = new List<Point>();
                 foreach (var seg in fig.Segments)
                 {
@@ -426,22 +452,31 @@ namespace WpfServo
                 }
                 points.Add(points[0]);
 
+                
+
                 if (points.Count < 1) return;
-                _pickUp = 50;
-                for (int i = 20; i >= 0; i--)
+                
+
+                _pickUp = 10;
+
+                SmoothMoveTo(points[0].X, points[0].Y);
+
+                for (int i = 20; i >= 0; i-=4)
                 {
                     CalcServoAngles(points[0].X, -points[0].Y, Z + i);
                     Thread.Sleep(25);
                 }
 
                 _pickUp = 0;
+                
                 for (var i = 0; i < points.Count-1; i++)
                 {
                     MyLinesQueue.Enqueue(new MyLine{From = points[i], To=points[i+1]});
                     DrawLine(points[i].X, points[i].Y, points[i+1].X, points[i+1].Y);
+                    Thread.Sleep(25);
                 }
-                _pickUp = 50;
-                for (int i = 0; i < 21; i++)
+                _pickUp = 10;
+                for (int i = 0; i < 21; i+=4)
                 {
                     CalcServoAngles(points[0].X, -points[0].Y, Z + i);
                     Thread.Sleep(25);
@@ -465,6 +500,11 @@ namespace WpfServo
                 CalcServoAngles(_x, _y , Z);
                 Thread.Sleep(10);
             }
+        }
+
+        private void SmoothMoveTo(double x, double y)
+        {
+            DrawLine(_x, -_y, x, y);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -539,5 +579,8 @@ namespace WpfServo
             }
            
         }
+
+
+        
     }
 }
