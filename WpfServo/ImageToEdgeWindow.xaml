@@ -19,15 +19,23 @@
                     Click="ButtonOpenImage_OnClick" 
                     HorizontalAlignment="Left" 
                     VerticalAlignment="Top">Открыть</Button>
-                <TextBlock Text="{Binding Path=CannyThresh, StringFormat=Threshold {0:D3}}"></TextBlock>
+                <TextBlock Text="{Binding Path=CannyThresh, StringFormat=Threshold {0:0.0}}"></TextBlock>
                 <Slider Minimum="0" Maximum="500" Value="{Binding CannyThresh}"></Slider>
-                <TextBlock Text="{Binding Path=CannyLinking, StringFormat=Threshold Linking {0:D3}}"></TextBlock>
+                <TextBlock Text="{Binding Path=CannyLinking, StringFormat=Threshold Linking {0:0.0}}"></TextBlock>
                 <Slider Minimum="0" Maximum="500" Value="{Binding CannyLinking}"></Slider>
+                <TextBlock Text="{Binding Path=ProTraceThreshold, StringFormat=ProTrace Threshold {0:0.00}}"></TextBlock>
+                <Slider Minimum="0" Maximum="1.0" Value="{Binding ProTraceThreshold}"></Slider>
                 
+                <CheckBox IsChecked="{Binding CannyEnabled}">Поиск границ по Canny</CheckBox>
+                <Button Margin="3" Height="40" Width="120" 
+                        FontSize="20" 
+                        Click="ButtonTransfer_OnClick" 
+                        HorizontalAlignment="Left" 
+                        VerticalAlignment="Top">Передать</Button>
             </StackPanel>
            
-            <Image x:Name="OrigImage"></Image>
-            <Image x:Name="CannyImage"></Image>
+            <Image x:Name="OrigImage" MaxWidth="500"></Image>
+            <Canvas x:Name="MyCanvas" Width="500" Height="500"></Canvas>
         </StackPanel>
     </Grid>
 </Window>

@@ -20,6 +20,10 @@ using Emgu.CV;
 using Emgu.CV.Structure;
 using Microsoft.Win32;
 using WpfServo.Annotations;
+using CsPotrace;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Drawing.Brushes;
+using Point = System.Windows.Point;
 
 namespace WpfServo
 {
@@ -49,8 +53,9 @@ namespace WpfServo
             InitializeComponent();
         }
 
+        public static List<List<Curve>> ListOfPathes = new List<List<Curve>>();
 
-        
+
         public string FileName { get; set; }
         public void OnFileNameChanged()
         {
@@ -58,25 +63,73 @@ namespace WpfServo
             EdgeDetectionRefresh();
         }
 
-        public double CannyThresh { get; set; }
+        public double CannyThresh { get; set; } = 200;
         public void OnCannyThreshChanged()
         {
             EdgeDetectionRefresh();
         }
 
-      
-        public double CannyLinking { get; set; }
+
+        public double CannyLinking { get; set; } = 300;
         public void OnCannyLinkingChanged()
         {
             EdgeDetectionRefresh();
         }
 
+        public double ProTraceThreshold { get; set; } = 0.5;
+
+        public void OnProTraceThresholdChanged()
+        {
+            Potrace.Treshold = ProTraceThreshold;
+            EdgeDetectionRefresh();
+        }
+
+        public bool? CannyEnabled { get; set; } = true;
+
+        public void OnCannyEnabledChanged()
+        {
+            EdgeDetectionRefresh();
+        }
 
         private void EdgeDetectionRefresh()
         {
-            Image<Gray, byte> canny = gray.Canny(CannyThresh, CannyLinking);
+            if (gray == null) return;
+           
             OrigImage.Source = ImageSourceForBitmap(gray.ToBitmap());
-            CannyImage.Source = ImageSourceForBitmap(canny.ToBitmap());
+            
+            Potrace.Clear();
+            ListOfPathes.Clear();
+            if (CannyEnabled == true)
+            {
+                Image<Gray, byte> canny = gray.Canny(CannyThresh, CannyLinking);
+                Potrace.Potrace_Trace(canny.ToBitmap(), ListOfPathes);
+            }
+            else Potrace.Potrace_Trace(gray.ToBitmap(), ListOfPathes);
+
+            MyCanvas.Children.Clear();
+            
+            foreach (var lc in ListOfPathes)
+            {
+                Polyline polyline = new Polyline() {StrokeThickness = 1, Stroke = System.Windows.Media.Brushes.Black};
+                polyline.Points.Add(new Point(lc[0].A.x, lc[0].A.y));
+                foreach (var C in lc)
+                {
+                    if (C.Kind == CurveKind.Line)
+                    {                      
+                        polyline.Points.Add(new Point(C.B.x, C.B.y));
+                    }
+                    else
+                    {
+                        polyline.Points.Add(new Point(C.ControlPointA.x, C.ControlPointA.y));
+                        polyline.Points.Add(new Point(C.ControlPointB.x, C.ControlPointB.y));
+                        polyline.Points.Add(new Point(C.B.x, C.B.y));
+                    }
+                }
+
+                MyCanvas.Children.Add(polyline);
+            }
+
+
         }
 
         private Image<Gray, byte> gray;
@@ -85,7 +138,7 @@ namespace WpfServo
         {
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Multiselect = false;
-            dialog.Filter = "Файл изображения|*.bmp;*.gif;*.exif;*.jpg;*.jpeg;*.png;*.tiff";
+            dialog.Filter = "Файл изображения|*.bmp;*.gif;*.exif;*.jpg;*.jpeg;*.png;*.tiff;*.tif";
             if (dialog.ShowDialog() == true)
             {
                 FileName = dialog.FileName;
@@ -99,6 +152,14 @@ namespace WpfServo
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+         
+
+        private void ButtonTransfer_OnClick(object sender, RoutedEventArgs e)
+        {
+            DialogResult = MyCanvas.Children.Count > 0;
+            Close();
         }
     }
 }

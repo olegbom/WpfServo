@@ -45,12 +45,10 @@
             </Grid.ColumnDefinitions>
             <TabControl Grid.Column="0">
                 <TabItem Header="Управление">
-                    <Border 
-                     Background="AliceBlue" 
-                    MouseDown="Border_MouseDown" 
-                    MouseUp="Border_MouseUp" 
-                    MouseMove="Border_MouseMove"
-                     MouseLeave="Border_OnMouseLeave">
+                    <Border MouseDown="Border_MouseDown" 
+                            MouseUp="Border_MouseUp" 
+                            MouseMove="Border_MouseMove"
+                            MouseLeave="Border_OnMouseLeave">
                      <Canvas x:Name="MyCanvas" 
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     RenderTransform="1 0 0 1 0 0">
@@ -65,12 +63,42 @@
                                     FontSize="{Binding ElementName=MyTextBox, Path=FontSize}"
                                     Foreground="#FFAAAAAA"
                                     MouseDown="GhostTextBlock_OnMouseDown" Cursor="SizeAll"/>
-                     </Canvas>
+                         <Ellipse Canvas.Left="{Binding BorderRadiusMinus}" Canvas.Top="{Binding BorderRadiusMinus}" 
+                                  StrokeThickness="2" Stroke="DarkRed"
+                                  Width="{Binding BorderDiameter}" 
+                                  Height="{Binding BorderDiameter}" 
+                                  x:Name="BorderEllipse"></Ellipse>
+                         <Ellipse Canvas.Left="-100" Canvas.Top="-100" 
+                                  StrokeThickness="2" Stroke="DarkRed"
+                                  Width="200" 
+                                  Height="200" 
+                                  x:Name="BaseEllipse"></Ellipse>
+                         <Path Stroke ="Black" StrokeThickness="1" x:Name="EdgePath"
+                               Canvas.Left="{Binding EdgePathPosX}" 
+                               Canvas.Top="{Binding EdgePathPosY}"
+                               Cursor="SizeAll"
+                               MouseDown="EdgePath_OnMouseDown">
+                             <Path.Data>
+                                 <PathGeometry x:Name="EdgePathGeometry">
+
+                                 </PathGeometry>
+                             </Path.Data>
+                         </Path>
+                        </Canvas>
                         <Border.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Click="MenuAddImage_OnClick">Добавить картинку</MenuItem>
+                                <MenuItem Click="MenuAddImage_OnClick" Header="Добавить картинку"/>
                             </ContextMenu>
                         </Border.ContextMenu>
+                        <Border.Background>
+                            <VisualBrush TileMode="Tile"
+                                         Viewport="0,0,10,10" ViewportUnits="Absolute" 
+                                         Viewbox="0,0,10,10" ViewboxUnits="Absolute">
+                                <VisualBrush.Visual>
+                                    <Rectangle Stroke="WhiteSmoke" StrokeThickness="1" Height="50" Width="50"/>
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Border.Background>
                     </Border>
                 </TabItem>
                 <TabItem Header="Код">
@@ -156,11 +184,11 @@
                                     <TranslateTransform3D  OffsetZ="{Binding BLen}"/>
                                 </Transform3DGroup>
                             </h:BoxVisual3D.Transform>
-                            <h:BoxVisual3D Center="0,0,0" Height="7" Width="60" Length="7" Fill="Gray">
+                            <h:BoxVisual3D Center="0,0,0" Height="4" Width="40" Length="4" Fill="Gray">
                                 <h:BoxVisual3D.Transform>
                                     <Transform3DGroup>
                                         
-                                        <TranslateTransform3D  OffsetY="-40"/>
+                                        <TranslateTransform3D  OffsetY="-20"/>
                                         <RotateTransform3D>
                                             <RotateTransform3D.Rotation>
                                                 <AxisAngleRotation3D Axis="1,0,0" Angle="{Binding ThetaAngle}"></AxisAngleRotation3D>

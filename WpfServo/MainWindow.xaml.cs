@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -219,8 +220,10 @@ namespace WpfServo
         private Point mDownPos;
         private Point mMovePos;
         private bool isDown;
-        private bool isGhostTestDown;
+        private bool isGhostTextDown;
         private Point oldGhostTextDownPos;
+        private bool isEdgePathDown;
+        private Point oldEdgePathDownPos;
 
         private void Border_MouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -241,7 +244,8 @@ namespace WpfServo
                 CalcServoAngles(_x, _y, Z+5);
             }
 
-            isGhostTestDown = false;
+            isGhostTextDown = false;
+            isEdgePathDown = false;
         }
 
         private void Border_MouseMove(object sender, MouseEventArgs e)
@@ -254,11 +258,18 @@ namespace WpfServo
                 CalcServoAngles(_x, _y, Z);
             }
 
-            if (isGhostTestDown)
+            if (isGhostTextDown)
             {
                 mMovePos = e.GetPosition(MyCanvas);
                 TextPosX = oldGhostTextDownPos.X - mDownPos.X + mMovePos.X;
                 TextPosY = oldGhostTextDownPos.Y - mDownPos.Y + mMovePos.Y;
+            }
+
+            if (isEdgePathDown)
+            {
+                mMovePos = e.GetPosition(MyCanvas);
+                EdgePathPosX = oldEdgePathDownPos.X - mDownPos.X + mMovePos.X;
+                EdgePathPosY = oldEdgePathDownPos.Y - mDownPos.Y + mMovePos.Y;
             }
         }
 
@@ -266,13 +277,21 @@ namespace WpfServo
         {
             mDownPos = e.GetPosition(MyCanvas);
             oldGhostTextDownPos = new Point(TextPosX, TextPosY);
-            isGhostTestDown = true;
+            isGhostTextDown = true;
+        }
+
+        private void EdgePath_OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            mDownPos = e.GetPosition(MyCanvas);
+            oldEdgePathDownPos = new Point(TextPosX, TextPosY);
+            isEdgePathDown = true;
         }
 
 
         private void Border_OnMouseLeave(object sender, MouseEventArgs e)
         {
-            isGhostTestDown = false;
+            isGhostTextDown = false;
+            isEdgePathDown = false;
             isDown = false;
         }
 
@@ -303,27 +322,18 @@ namespace WpfServo
            
 
             double theta = anglelx1 + anglebb1;
-            //TEST
-            //theta = Math.PI / 2;
-            //gamma = Math.PI / 2;
-            //phi = Math.PI / 2;
            
-            //END TEST
-           // theta -= Math.PI/2;
             double betaTicks = beta * 180 / Math.PI / 0.09 * 2 + 1000;
             double gammaTicks = gamma * 180 / Math.PI / 0.108 * 2 + 1590;
             double phiTicks = phi * 180 / Math.PI / 0.11 * 2 + 1350;
             double thetaTicks = theta * 180 / Math.PI / 0.086 * 2 + 1050;
 
-            //thetaTicks -= _pickUp;
-           
-            
             Slider5Value = thetaTicks;
             Slider1Value = betaTicks;
             Slider4Value = phiTicks;
             Slider3Value = gammaTicks;
 
-
+            /*
             RotateTransform3D transform1 = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), BetaAngle));
             RotateTransform3D transform2 = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(1, 0, 0), PhiAngle));
             TranslateTransform3D transform3 = new TranslateTransform3D(0, ALen, 0);
@@ -340,22 +350,32 @@ namespace WpfServo
             generalTransform.Children.Add(transform4);
             generalTransform.Children.Add(transform3);
             generalTransform.Children.Add(transform2);
-            generalTransform.Children.Add(transform1);
-            MyPoint3DQueue.Enqueue(new Point3D(generalTransform.Value.OffsetX, generalTransform.Value.OffsetY, generalTransform.Value.OffsetZ));
-
+            generalTransform.Children.Add(transform1);*/
+            // MyPoint3DQueue.Enqueue(new Point3D(generalTransform.Value.OffsetX, generalTransform.Value.OffsetY, generalTransform.Value.OffsetZ));
+            MyPoint3DQueue.Enqueue(new Point3D(-x, z-40, y));
         }
 
         public double Z = 150, _x = 0, _y = 100, _pickUp = 0;
 
+        public double BorderDiameter { get; set; }
+        public double BorderRadiusMinus { get; set; }
+
         private void Slider_ZChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             Z = ((Slider) sender).Value;
-          
+            double l = ALen + BLen;
+            double r = Math.Sqrt(l * l - Z * Z);
+
+            BorderDiameter = r*2;
+            BorderRadiusMinus = -r;
             CalcServoAngles(_x, _y, Z);
         }
 
         public double TextPosX { get; set; } = -130;
         public double TextPosY { get; set; } = -180;
+
+        public double EdgePathPosX { get; set; } = -130;
+        public double EdgePathPosY { get; set; } = -180;
 
         public class MyLine
         {
@@ -374,6 +394,8 @@ namespace WpfServo
             IsDrawing = true;
             MyCanvas.Children.Clear();
             MyCanvas.Children.Add(GhostTextBlock);
+            MyCanvas.Children.Add(BorderEllipse);
+            MyCanvas.Children.Add(BaseEllipse);
             Point3D point = Points3D.Last();
             Points3D.Clear();
             Points3D.Add(point);
@@ -391,10 +413,10 @@ namespace WpfServo
 
                 PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
 
-                PickUpPen();
+                Z += 20;
                 Thread.Sleep(100);
                 DrawPathGeometry(myPath);
-                PickUpPen();
+                Z -= 20;
                 IsDrawing = false;
             });
 
@@ -412,12 +434,6 @@ namespace WpfServo
         }
 
 
-        private void PickUpPen()
-        {
-            _pickUp = 10;
-            CalcServoAngles(_x, _y, Z + 20);
-            _pickUp = 0;
-        }
 
         private void DrawPathGeometry(PathGeometry myPath)
         {
@@ -458,17 +474,18 @@ namespace WpfServo
                 if (points.Count < 1) return;
                 
 
-                _pickUp = 10;
+                
 
                 SmoothMoveTo(points[0].X, points[0].Y);
 
                 for (int i = 20; i >= 0; i-=4)
                 {
-                    CalcServoAngles(points[0].X, -points[0].Y, Z + i);
+                    Z -= 4;
+                    CalcServoAngles(points[0].X, -points[0].Y, Z);
                     Thread.Sleep(25);
                 }
 
-                _pickUp = 0;
+                
                 
                 for (var i = 0; i < points.Count-1; i++)
                 {
@@ -476,13 +493,14 @@ namespace WpfServo
                     DrawLine(points[i].X, points[i].Y, points[i+1].X, points[i+1].Y);
                     Thread.Sleep(25);
                 }
-                _pickUp = 10;
+               
                 for (int i = 0; i < 21; i+=4)
                 {
-                    CalcServoAngles(points[0].X, -points[0].Y, Z + i);
+                    Z += 4;
+                    CalcServoAngles(points[0].X, -points[0].Y, Z);
                     Thread.Sleep(25);
                 }
-                _pickUp = 0;
+               
             }
            
 
@@ -581,11 +599,37 @@ namespace WpfServo
            
         }
 
+     
 
         private void MenuAddImage_OnClick(object sender, RoutedEventArgs e)
         {
             ImageToEdgeWindow window = new ImageToEdgeWindow();
-            window.ShowDialog();
+            if (window.ShowDialog() == true)
+            {
+                EdgePathGeometry.Figures.Clear();
+
+                System.Collections.IList myCanvasChildren = window.MyCanvas.Children;
+                for (int i = 0; i < myCanvasChildren.Count; i++)
+                {
+                    object myCanvasChild = myCanvasChildren[i];
+                    if (myCanvasChild is Polyline pl)
+                    {
+                        PathFigure pathFigure = new PathFigure();
+
+                        LineSegment segmentLine = new LineSegment(pl.Points[0], false);
+                        
+                        PolyLineSegment segment = new PolyLineSegment(pl.Points.ToArray(), true);
+                        pathFigure.Segments.Add(segmentLine);
+                        pathFigure.Segments.Add(segment);
+                        
+                        EdgePathGeometry.Figures.Add(pathFigure);
+                        
+                    }
+                }
+
+            }
         }
+
+       
     }
 }
