@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -30,7 +29,9 @@ using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using WpfColorFontDialog;
 using WpfServo.Annotations;
+using Brushes = System.Windows.Media.Brushes;
 using LineSegment = System.Windows.Media.LineSegment;
+using Point = System.Windows.Point;
 
 namespace WpfServo
 {
@@ -44,11 +45,11 @@ namespace WpfServo
         public double ALen { get; private set; } = 150.0;
         public double BLen { get; private set; } = 66.0;
 
-        public double BetaAngle => ((UInt16)Slider1Value/40*40 - 1000) * 0.09 / 2 - 90;
-        public double GammaAngle =>  ((UInt16)Slider3Value / 40 * 40 - 1590) * 0.108 / 2 - 90 ;   // 0.108 * 2 + 1390
+        public double BetaAngle => (Slider1Value - 1000) * 0.09 / 2 - 90;
+        public double GammaAngle =>  (Slider3Value - 1590) * 0.108 / 2 - 90 ;   // 0.108 * 2 + 1390
  
-        public double PhiAngle =>   90- ((UInt16)Slider4Value / 40 * 40 - 1350) * 0.11 / 2 ;
-        public double ThetaAngle =>    ((UInt16)Slider5Value / 40 * 40 - 1050) * 0.086 / 2 - 90;
+        public double PhiAngle =>   90- (Slider4Value - 1350) * 0.11 / 2 ;
+        public double ThetaAngle =>    (Slider5Value - 1050) * 0.086 / 2 - 90;
 
         public Model3D RoboHandBaseModel { get; set; }
         public Model3D RoboHandServo2Model { get; set; }
@@ -581,6 +582,10 @@ namespace WpfServo
         }
 
 
-        
+        private void MenuAddImage_OnClick(object sender, RoutedEventArgs e)
+        {
+            ImageToEdgeWindow window = new ImageToEdgeWindow();
+            window.ShowDialog();
+        }
     }
 }
