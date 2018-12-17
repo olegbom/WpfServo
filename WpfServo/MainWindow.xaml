@@ -49,10 +49,10 @@
                             MouseUp="Border_MouseUp" 
                             MouseMove="Border_MouseMove"
                             MouseLeave="Border_OnMouseLeave">
-                     <Canvas x:Name="MyCanvas" 
+                        <Canvas x:Name="MyCanvas" 
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     RenderTransform="1 0 0 1 0 0">
-                         <TextBlock x:Name="GhostTextBlock"
+                            <TextBlock x:Name="GhostTextBlock"
                                     Text="{Binding ElementName=MyTextBox, Path=Text}" 
                                     Canvas.Left="{Binding TextPosX}" 
                                     Canvas.Top="{Binding TextPosY}"
@@ -63,30 +63,30 @@
                                     FontSize="{Binding ElementName=MyTextBox, Path=FontSize}"
                                     Foreground="#FFAAAAAA"
                                     MouseDown="GhostTextBlock_OnMouseDown" Cursor="SizeAll"/>
-                         <Ellipse Canvas.Left="{Binding BorderRadiusMinus}" Canvas.Top="{Binding BorderRadiusMinus}" 
+                            <Ellipse Canvas.Left="{Binding BorderRadiusMinus}" Canvas.Top="{Binding BorderRadiusMinus}" 
                                   StrokeThickness="2" Stroke="DarkRed"
                                   Width="{Binding BorderDiameter}" 
                                   Height="{Binding BorderDiameter}" 
                                   x:Name="BorderEllipse"></Ellipse>
-                         <Ellipse Canvas.Left="-100" Canvas.Top="-100" 
+                            <Ellipse Canvas.Left="-100" Canvas.Top="-100" 
                                   StrokeThickness="2" Stroke="DarkRed"
                                   Width="200" 
                                   Height="200" 
                                   x:Name="BaseEllipse"></Ellipse>
-                         <Path Stroke ="Gray" StrokeThickness="1" x:Name="EdgePath"
-                               Canvas.Left="{Binding EdgePathPosX}" 
-                               Canvas.Top="{Binding EdgePathPosY}"
-                               Cursor="SizeAll"
-                               MouseDown="EdgePath_OnMouseDown">
-                             <Path.RenderTransform>
-                                    <ScaleTransform ScaleX="{Binding EdgePathScale}" ScaleY="{Binding EdgePathScale}"/>
-                             </Path.RenderTransform>
-                             <Path.Data>
-                                 <PathGeometry x:Name="EdgePathGeometry">
-
-                                 </PathGeometry>
-                             </Path.Data>
-                         </Path>
+                            <Path Stroke ="Gray" StrokeThickness="1" x:Name="EdgePath"
+                                  Canvas.Left="{Binding EdgePathPosX}" 
+                                  Canvas.Top="{Binding EdgePathPosY}"
+                                  Cursor="SizeAll"
+                                  MouseDown="EdgePath_OnMouseDown">
+                                <Path.Data>
+                                    <PathGeometry x:Name="EdgePathGeometry">
+                                        <PathGeometry.Transform>
+                                            <ScaleTransform ScaleX="{Binding EdgePathScale}" 
+                                                           ScaleY="{Binding EdgePathScale}"/>
+                                        </PathGeometry.Transform>
+                                    </PathGeometry>
+                                </Path.Data>
+                            </Path>
                         </Canvas>
                         <Border.ContextMenu>
                             <ContextMenu>

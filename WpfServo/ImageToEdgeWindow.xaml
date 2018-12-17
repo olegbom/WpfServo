@@ -35,7 +35,13 @@
             </StackPanel>
            
             <Image x:Name="OrigImage" MaxWidth="500"></Image>
-            <Canvas x:Name="MyCanvas" Width="500" Height="500"></Canvas>
+            <Canvas x:Name="MyCanvas" Width="500" Height="500">
+                <Path x:Name="EdgePath" Stroke="Black" StrokeThickness="1">
+                    <Path.Data>
+                        <PathGeometry x:Name="EdgePathGeometry"/>
+                    </Path.Data>
+                </Path>
+            </Canvas>
         </StackPanel>
     </Grid>
 </Window>

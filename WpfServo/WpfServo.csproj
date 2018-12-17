@@ -182,6 +182,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Helper.cs" />
     <Compile Include="ImageToEdgeWindow.xaml.cs">
       <DependentUpon>ImageToEdgeWindow.xaml</DependentUpon>
     </Compile>

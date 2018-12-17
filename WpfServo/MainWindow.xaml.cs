@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
+using CsPotrace;
 using HelixToolkit.Wpf;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
@@ -424,8 +425,8 @@ namespace WpfServo
                 Thread.Sleep(100);
                  
      
-                if(EdgePathPoints != null)
-                    DrawPathGeometry(EdgePathPoints, EdgePathPosX, EdgePathPosY, EdgePathScale);
+                if(ListOfEdgePaths != null)
+                    DrawListOfEdgePaths(ListOfEdgePaths, EdgePathPosX, EdgePathPosY, EdgePathScale);
                 
                 Z -= 20;
 
@@ -435,16 +436,6 @@ namespace WpfServo
             });
 
 
-            /*double xOld = 0, yOld = 0;
-            for (double i = 0; i < Math.PI*20+1; i += Math.PI/40)
-            {
-                double x = Math.Sin(i) * 25;
-                double y = CLen + 80 + Math.Cos(i) * 25;
-                DrawLine(xOld, yOld, x, y);
-                xOld = x;
-                yOld = y;
-            }
-            */
         }
 
 
@@ -524,14 +515,43 @@ namespace WpfServo
         }
 
 
-        private void DrawPathGeometry(List<List<Point>> myPoints, double dx = 0, double dy = 0, double scale = 1)
+        private void DrawListOfEdgePaths(List<List<Curve>> listOfPaths, double dx = 0, double dy = 0, double scale = 1)
         {
-            foreach (var edgePoints in myPoints)
-            {
 
-                List<Point> points = edgePoints.Select(p => new Point(p.X * scale + dx, p.Y * scale + dy)).ToList();
+            foreach (var lc in listOfPaths)
+            {
+                List<Point> points = new List<Point>();
+                points.Add(new Point(lc[0].A.x, lc[0].A.y));
+
+                foreach (var c in lc)
+                {
+                    if (c.Kind == CurveKind.Line)
+                    {
+                        points.Add(new Point(c.B.x, c.B.y));
+                    }
+                    else
+                    {
+                        double bdx = c.A.x - c.B.x;
+                        double bdy = c.A.y - c.B.y;
+
+                        double len = Math.Sqrt(bdx * bdx + bdy * bdy)/4;
+                        
+
+                        points.AddRange(
+                            Helper.BezierPoints( 
+                                (int)len, c.A.ToPoint(),
+                                c.ControlPointA.ToPoint(), 
+                                c.ControlPointB.ToPoint(), 
+                                c.B.ToPoint()
+                                )
+                        );
+                    }
+                }
+
+                points = points.Select(p => new Point(p.X * scale + dx, p.Y * scale + dy)).ToList();
                 points.Add(points[0]);
-                
+
+
                 if (points.Count < 1) return;
                 
                 SmoothMoveTo(points[0].X, points[0].Y);
@@ -542,13 +562,15 @@ namespace WpfServo
                     CalcServoAngles(points[0].X, -points[0].Y, Z);
                     Thread.Sleep(25);
                 }
+                
 
-
-
-                for (var i = 0; i < points.Count - 1; i++)
+                for (var i = 1; i < points.Count; i++)
                 {
-                    MyLinesQueue.Enqueue(new MyLine { From = points[i], To = points[i + 1] });
-                    DrawLine(points[i].X, points[i].Y, points[i + 1].X, points[i + 1].Y);
+                    MyLinesQueue.Enqueue(new MyLine { From = points[i-1], To = points[i] });
+                    _x = points[i].X;
+                    _y = -points[i].Y;
+                    CalcServoAngles(_x, _y, Z);
+                    
                     Thread.Sleep(25);
                 }
 
@@ -558,9 +580,7 @@ namespace WpfServo
                     CalcServoAngles(points[0].X, -points[0].Y, Z);
                     Thread.Sleep(25);
                 }
-
             }
-
 
 
         }
@@ -658,34 +678,17 @@ namespace WpfServo
         }
 
         public double EdgePathScale { get; set; } = 1.0;
-        public List<List<Point>> EdgePathPoints = new List<List<Point>>();
+
+        public List<List<Curve>> ListOfEdgePaths;
+        
 
         private void MenuAddImage_OnClick(object sender, RoutedEventArgs e)
         {
             ImageToEdgeWindow window = new ImageToEdgeWindow();
             if (window.ShowDialog() == true)
             {
-                EdgePathGeometry.Figures.Clear();
-
-
-                foreach (var myCanvasChild in window.MyCanvas.Children)
-                {
-                    if (myCanvasChild is Polyline pl)
-                    {
-                        EdgePathPoints.Add(pl.Points.ToList());
-                        PathFigure pathFigure = new PathFigure();
-
-                        LineSegment segmentLine = new LineSegment(pl.Points[0], false);
-                        
-                        PolyLineSegment segment = new PolyLineSegment(pl.Points.ToArray(), true);
-                        pathFigure.Segments.Add(segmentLine);
-                        pathFigure.Segments.Add(segment);
-                        
-                        EdgePathGeometry.Figures.Add(pathFigure);
-                        
-                    }
-                }
-
+                ListOfEdgePaths = ImageToEdgeWindow.ListOfPaths;
+                EdgePathGeometry.AddListOfPaths(ListOfEdgePaths);
             }
         }
 

@@ -53,7 +53,7 @@ namespace WpfServo
             InitializeComponent();
         }
 
-        public static List<List<Curve>> ListOfPathes = new List<List<Curve>>();
+        public static List<List<Curve>> ListOfPaths = new List<List<Curve>>();
 
 
         public string FileName { get; set; }
@@ -98,40 +98,21 @@ namespace WpfServo
             OrigImage.Source = ImageSourceForBitmap(gray.ToBitmap());
             
             Potrace.Clear();
-            ListOfPathes.Clear();
+            ListOfPaths.Clear();
             if (CannyEnabled == true)
             {
                 Image<Gray, byte> canny = gray.Canny(CannyThresh, CannyLinking);
-                Potrace.Potrace_Trace(canny.ToBitmap(), ListOfPathes);
+                Potrace.Potrace_Trace(canny.ToBitmap(), ListOfPaths);
             }
-            else Potrace.Potrace_Trace(gray.ToBitmap(), ListOfPathes);
+            else Potrace.Potrace_Trace(gray.ToBitmap(), ListOfPaths);
 
-            MyCanvas.Children.Clear();
+            EdgePathGeometry.AddListOfPaths(ListOfPaths);
             
-            foreach (var lc in ListOfPathes)
-            {
-                Polyline polyline = new Polyline() {StrokeThickness = 1, Stroke = System.Windows.Media.Brushes.Black};
-                polyline.Points.Add(new Point(lc[0].A.x, lc[0].A.y));
-                foreach (var C in lc)
-                {
-                    if (C.Kind == CurveKind.Line)
-                    {                      
-                        polyline.Points.Add(new Point(C.B.x, C.B.y));
-                    }
-                    else
-                    {
-                        polyline.Points.Add(new Point(C.ControlPointA.x, C.ControlPointA.y));
-                        polyline.Points.Add(new Point(C.ControlPointB.x, C.ControlPointB.y));
-                        polyline.Points.Add(new Point(C.B.x, C.B.y));
-                    }
-                }
+            
 
-                MyCanvas.Children.Add(polyline);
-            }
-
-
+          
         }
-
+        
         private Image<Gray, byte> gray;
 
         private void ButtonOpenImage_OnClick(object sender, RoutedEventArgs e)
@@ -161,5 +142,7 @@ namespace WpfServo
             DialogResult = MyCanvas.Children.Count > 0;
             Close();
         }
+
+      
     }
 }
