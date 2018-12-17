@@ -174,7 +174,7 @@ namespace WpfServo
         private async void OpenComPortAsync()
         {
             _serialPort = await Task.Run(() => FindComPort());
-            _serialPort?.Open();
+            _serialPort.Open();
 
             _serialPortTimer = new Timer((o) =>
             {
@@ -396,6 +396,7 @@ namespace WpfServo
             MyCanvas.Children.Add(GhostTextBlock);
             MyCanvas.Children.Add(BorderEllipse);
             MyCanvas.Children.Add(BaseEllipse);
+            MyCanvas.Children.Add(EdgePath);
             Point3D point = Points3D.Last();
             Points3D.Clear();
             Points3D.Add(point);
@@ -407,6 +408,7 @@ namespace WpfServo
                 MyTextBox.FontSize,
                 Brushes.Black);
 
+
             Task.Run(() =>
             {
                 Geometry myGeom = text.BuildGeometry(new Point(TextPosX, TextPosY));
@@ -417,7 +419,19 @@ namespace WpfServo
                 Thread.Sleep(100);
                 DrawPathGeometry(myPath);
                 Z -= 20;
+
+                Z += 20;
+                Thread.Sleep(100);
+                 
+     
+                if(EdgePathPoints != null)
+                    DrawPathGeometry(EdgePathPoints, EdgePathPosX, EdgePathPosY, EdgePathScale);
+                
+                Z -= 20;
+
                 IsDrawing = false;
+
+                
             });
 
 
@@ -435,7 +449,7 @@ namespace WpfServo
 
 
 
-        private void DrawPathGeometry(PathGeometry myPath)
+        private void DrawPathGeometry(PathGeometry myPath, double dx = 0, double dy = 0, double scale = 1)
         {
             foreach (var fig in myPath.Figures.ToList().OrderBy(o => o.StartPoint.X))
             {
@@ -467,6 +481,8 @@ namespace WpfServo
                             break;
                     }
                 }
+
+                points = points.Select(p => new Point(p.X * scale + dx, p.Y * scale + dy)).ToList();
                 points.Add(points[0]);
 
                 
@@ -505,6 +521,48 @@ namespace WpfServo
            
 
            
+        }
+
+
+        private void DrawPathGeometry(List<List<Point>> myPoints, double dx = 0, double dy = 0, double scale = 1)
+        {
+            foreach (var edgePoints in myPoints)
+            {
+
+                List<Point> points = edgePoints.Select(p => new Point(p.X * scale + dx, p.Y * scale + dy)).ToList();
+                points.Add(points[0]);
+                
+                if (points.Count < 1) return;
+                
+                SmoothMoveTo(points[0].X, points[0].Y);
+
+                for (int i = 20; i >= 0; i -= 4)
+                {
+                    Z -= 4;
+                    CalcServoAngles(points[0].X, -points[0].Y, Z);
+                    Thread.Sleep(25);
+                }
+
+
+
+                for (var i = 0; i < points.Count - 1; i++)
+                {
+                    MyLinesQueue.Enqueue(new MyLine { From = points[i], To = points[i + 1] });
+                    DrawLine(points[i].X, points[i].Y, points[i + 1].X, points[i + 1].Y);
+                    Thread.Sleep(25);
+                }
+
+                for (int i = 0; i < 21; i += 4)
+                {
+                    Z += 4;
+                    CalcServoAngles(points[0].X, -points[0].Y, Z);
+                    Thread.Sleep(25);
+                }
+
+            }
+
+
+
         }
 
         private void DrawLine(double x0, double y0, double x1, double y1)
@@ -599,7 +657,8 @@ namespace WpfServo
            
         }
 
-     
+        public double EdgePathScale { get; set; } = 1.0;
+        public List<List<Point>> EdgePathPoints = new List<List<Point>>();
 
         private void MenuAddImage_OnClick(object sender, RoutedEventArgs e)
         {
@@ -608,12 +667,12 @@ namespace WpfServo
             {
                 EdgePathGeometry.Figures.Clear();
 
-                System.Collections.IList myCanvasChildren = window.MyCanvas.Children;
-                for (int i = 0; i < myCanvasChildren.Count; i++)
+
+                foreach (var myCanvasChild in window.MyCanvas.Children)
                 {
-                    object myCanvasChild = myCanvasChildren[i];
                     if (myCanvasChild is Polyline pl)
                     {
+                        EdgePathPoints.Add(pl.Points.ToList());
                         PathFigure pathFigure = new PathFigure();
 
                         LineSegment segmentLine = new LineSegment(pl.Points[0], false);

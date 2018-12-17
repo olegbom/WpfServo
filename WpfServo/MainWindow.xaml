@@ -73,11 +73,14 @@
                                   Width="200" 
                                   Height="200" 
                                   x:Name="BaseEllipse"></Ellipse>
-                         <Path Stroke ="Black" StrokeThickness="1" x:Name="EdgePath"
+                         <Path Stroke ="Gray" StrokeThickness="1" x:Name="EdgePath"
                                Canvas.Left="{Binding EdgePathPosX}" 
                                Canvas.Top="{Binding EdgePathPosY}"
                                Cursor="SizeAll"
                                MouseDown="EdgePath_OnMouseDown">
+                             <Path.RenderTransform>
+                                    <ScaleTransform ScaleX="{Binding EdgePathScale}" ScaleY="{Binding EdgePathScale}"/>
+                             </Path.RenderTransform>
                              <Path.Data>
                                  <PathGeometry x:Name="EdgePathGeometry">
 
@@ -88,6 +91,7 @@
                         <Border.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Click="MenuAddImage_OnClick" Header="Добавить картинку"/>
+                                <Slider Minimum="0.05" Maximum="2" Width="100" Value="{Binding EdgePathScale}"></Slider>
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Border.Background>
