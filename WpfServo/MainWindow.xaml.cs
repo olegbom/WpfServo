@@ -220,7 +220,7 @@ namespace WpfServo
 
         private Point mDownPos;
         private Point mMovePos;
-        private bool isDown;
+        private bool isMouseDown;
         private bool isGhostTextDown;
         private Point oldGhostTextDownPos;
         private bool isEdgePathDown;
@@ -230,47 +230,47 @@ namespace WpfServo
         {
              mDownPos = e.GetPosition(MyCanvas);
 
-            _x =  mDownPos.X ;
-            _y = -mDownPos.Y ;
+            if (!isGhostTextDown && !isGhostTextDown)
+            {
+                _x = mDownPos.X;
+                _y = -mDownPos.Y;
+                CalcServoAngles(_x, _y, Z + 5);
+            }
 
-            isDown = true;
-            CalcServoAngles(_x, _y, Z+5);
+            isMouseDown = true;
         }
         
         private void Border_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (isDown)
+            if (!isGhostTextDown && !isGhostTextDown)
             {
-                isDown = false;
                 CalcServoAngles(_x, _y, Z+5);
             }
-
+            isMouseDown = false;
             isGhostTextDown = false;
             isEdgePathDown = false;
         }
 
         private void Border_MouseMove(object sender, MouseEventArgs e)
         {
-            if (isDown)
-            {
-                mMovePos = e.GetPosition(MyCanvas);
-                _x = mMovePos.X;
-                _y = -mMovePos.Y;
-                CalcServoAngles(_x, _y, Z);
-            }
-
             if (isGhostTextDown)
             {
                 mMovePos = e.GetPosition(MyCanvas);
                 TextPosX = oldGhostTextDownPos.X - mDownPos.X + mMovePos.X;
                 TextPosY = oldGhostTextDownPos.Y - mDownPos.Y + mMovePos.Y;
             }
-
-            if (isEdgePathDown)
+            else if (isEdgePathDown)
             {
                 mMovePos = e.GetPosition(MyCanvas);
                 EdgePathPosX = oldEdgePathDownPos.X - mDownPos.X + mMovePos.X;
                 EdgePathPosY = oldEdgePathDownPos.Y - mDownPos.Y + mMovePos.Y;
+            }
+            else if (isMouseDown)
+            {
+                mMovePos = e.GetPosition(MyCanvas);
+                _x = mMovePos.X;
+                _y = -mMovePos.Y;
+                CalcServoAngles(_x, _y, Z);
             }
         }
 
@@ -293,7 +293,7 @@ namespace WpfServo
         {
             isGhostTextDown = false;
             isEdgePathDown = false;
-            isDown = false;
+            isMouseDown = false;
         }
 
         public void CalcServoAngles(double x, double y, double z)
