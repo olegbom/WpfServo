@@ -335,5 +335,22 @@ namespace WpfServo
             close_p1 = new Point(p1.X + dx12 * t1, p1.Y + dy12 * t1);
             close_p2 = new Point(p3.X + dx34 * t2, p3.Y + dy34 * t2);
         }
+
+        public static MyLine[] ToLines(this Point[] points)
+        {
+            var linesCount = points.Length / 2;
+            var result = new MyLine[linesCount];
+            for (int i = 0; i < linesCount; i++)
+            {
+                result[i] = new MyLine{
+                    From = points[i*2],
+                    To = points[i*2 + 1]
+
+                };
+            }
+            return result;
+        }
+
+
     }
 }

@@ -60,7 +60,7 @@ namespace WpfServo
 
         public TranslateTransform3D RoboHandShoulder1ModelTranlate { get; set; }
 
-        public Point3DCollection Points3D {get; set;} = new Point3DCollection(1000);
+        public Point3DCollection Points3D {get; set;} = new Point3DCollection(5000);
 
 
         private SerialPort _serialPort;
@@ -94,10 +94,11 @@ namespace WpfServo
                 if(!MyPoint3DQueue.IsEmpty)
                     while (MyPoint3DQueue.TryDequeue(out var point))
                     {
-                        if (Points3D.Count == 400)
-                        {
+                        if (Points3D.Count > 4950)
+                        { 
+                            var last = Points3D.Last();
                             Points3D.Clear();
-
+                            Points3D.Add(last);
                         }
                         Points3D.Add(point);
                         Points3D.Add(point);
@@ -379,12 +380,6 @@ namespace WpfServo
         public double EdgePathPosX { get; set; } = -130;
         public double EdgePathPosY { get; set; } = -180;
 
-        public class MyLine
-        {
-            public Point From;
-            public Point To;
-        }
-        
 
         public bool IsDrawing { get; set; }
         public bool IsButtonDrawEnabled => !IsDrawing;
@@ -436,22 +431,31 @@ namespace WpfServo
             Thread.Sleep(100);
 
             
-
+            List<MyLine> lines = new List<MyLine>();
             for (double phi = Math.PI / 4; phi <= 3 * Math.PI / 4; phi += Math.PI / 360)
             {
                 Point p1 = new Point(100 * Math.Cos(phi), -100 * Math.Sin(phi));
                 Point p2 = new Point(300 * Math.Cos(phi), -300 * Math.Sin(phi));
                 Point[] dashed = Helper.ClipLineWithLineArray(p1, p2, testPoints);
-                for (int j = 0; j < dashed.Length / 2; j++)
+
+
+                if (dashed.Length > 0 && dashed.Length % 2 == 0)
                 {
-
-                    SmoothMoveTo(dashed[j * 2]);
-
-                    PenDown();
-                    SmoothMoveTo(dashed[j * 2 + 1]);
-                    PenUp();
+                    lines.AddRange(dashed.ToLines());
                 }
             }
+
+           
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+
+                SmoothMoveTo(lines[i].From);
+                PenDown();
+                SmoothMoveTo(lines[i].To);
+                PenUp();
+            }
+
 
             List<Point> polarPoints = testPoints.Select(p => p.ToPolar()).ToList();
 
@@ -463,8 +467,6 @@ namespace WpfServo
                 Point p2 = new Point(r, Math.PI);
                 Point[] dashed = Helper.ClipLineWithLineArray(p1, p2, polarPoints);
                 
-
-
                 for (int j = 0; j < dashed.Length / 2; j++)
                 {
 
@@ -475,13 +477,7 @@ namespace WpfServo
                 }
             }
 
-            /*for (double r = 100; r < 300; r+=2)
-            {
-                Point p1 = new Point(r * Math.Cos(Math.PI/4), -r * Math.Sin(Math.PI / 4));
-                Point p2 = new Point(r * Math.Cos(3*Math.PI / 4), -r * Math.Sin(3*Math.PI / 4));
-                Point[] dashed = Helper.ClipLineWithLineArray(p1, p2, testPoints);
-                DrawDashedLine(dashed);
-            }*/
+
 
             Z -= 20;
         }
@@ -513,6 +509,7 @@ namespace WpfServo
             {
                
                 List<Point> points = new List<Point>();
+                points.Add(fig.StartPoint);
                 foreach (var seg in fig.Segments)
                 {
                     switch (seg)
@@ -533,9 +530,21 @@ namespace WpfServo
                                 points.Add(point);
                             break;
                         case BezierSegment bs:
-                            points.Add(bs.Point1);
-                            points.Add(bs.Point2);
-                            points.Add(bs.Point3);
+
+                            Point lastPoint = points.Last();
+                            double bdx = lastPoint.X - bs.Point3.X;
+                            double bdy = lastPoint.Y - bs.Point3.X;
+
+                            double len = Math.Sqrt(bdx * bdx + bdy * bdy) / 4;
+
+                            List<Point> bezierPoints = Helper.BezierPoints(
+                                (int)len, lastPoint,
+                                bs.Point1,
+                                bs.Point2,
+                                bs.Point3
+                            );
+
+                            points.AddRange(bezierPoints);
                             break;
                     }
                 }
@@ -543,23 +552,8 @@ namespace WpfServo
                 points = points.Select(p => new Point(p.X * scale + dx, p.Y * scale + dy)).ToList();
                 points.Add(points[0]);
 
-                
-
-                if (points.Count < 1) return;
-                
-
-                
-
                 SmoothMoveTo(points[0]);
-
-                for (int i = 20; i >= 0; i-=4)
-                {
-                    Z -= 4;
-                    CalcServoAngles(points[0].X, -points[0].Y, Z);
-                    Thread.Sleep(25);
-                }
-
-                
+                PenDown();
                 
                 for (var i = 0; i < points.Count-1; i++)
                 {
@@ -567,14 +561,10 @@ namespace WpfServo
                     DrawLine(points[i], points[i+1]);
                     Thread.Sleep(25);
                 }
-               
-                for (int i = 0; i < 21; i+=4)
-                {
-                    Z += 4;
-                    CalcServoAngles(points[0].X, -points[0].Y, Z);
-                    Thread.Sleep(25);
-                }
-               
+
+                PenUp();
+
+
             }
 
             Z -= 20;
@@ -672,16 +662,12 @@ namespace WpfServo
 
                 SmoothMoveTo(points[0]);
 
-                for (int i = 20; i >= 0; i -= 4)
-                {
-                    Z -= 4;
-                    CalcServoAngles(points[0].X, -points[0].Y, Z);
-                    Thread.Sleep(25);
-                }
+                PenDown();
 
 
                 for (var i = 1; i < points.Count; i++)
                 {
+
                     MyLinesQueue.Enqueue(new MyLine { From = points[i - 1], To = points[i] });
                     _x = points[i].X;
                     _y = -points[i].Y;
@@ -690,12 +676,7 @@ namespace WpfServo
                     Thread.Sleep(25);
                 }
 
-                for (int i = 0; i < 21; i += 4)
-                {
-                    Z += 4;
-                    CalcServoAngles(points[0].X, -points[0].Y, Z);
-                    Thread.Sleep(25);
-                }
+                PenUp();
             }
             Z -= 20;
 
@@ -704,7 +685,7 @@ namespace WpfServo
 
 
 
-
+        private void DrawLine(MyLine line, int msDelay = 10) => DrawLine(line.From, line.To, msDelay);
         private void DrawLine(Point p0, Point p1, int msDelay = 10)
         {
             if (p0.X.Equals(double.NaN)) return;
