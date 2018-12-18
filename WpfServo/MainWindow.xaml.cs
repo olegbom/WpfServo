@@ -34,6 +34,7 @@ using WpfServo.Annotations;
 using Brushes = System.Windows.Media.Brushes;
 using LineSegment = System.Windows.Media.LineSegment;
 using Point = System.Windows.Point;
+using Polygon = System.Windows.Shapes.Polygon;
 
 namespace WpfServo
 {
@@ -93,10 +94,10 @@ namespace WpfServo
                 if(!MyPoint3DQueue.IsEmpty)
                     while (MyPoint3DQueue.TryDequeue(out var point))
                     {
-                        if (Points3D.Count == 1000)
+                        if (Points3D.Count == 400)
                         {
-                            Points3D.RemoveAt(0);
-                            Points3D.RemoveAt(0);
+                            Points3D.Clear();
+
                         }
                         Points3D.Add(point);
                         Points3D.Add(point);
@@ -298,8 +299,8 @@ namespace WpfServo
 
         public void CalcServoAngles(double x, double y, double z)
         {
-            z += _pickUp;
-           // z = z + (y - 120) / 8;
+     
+            z = z + (y - 120) / 8;
             double beta = Math.Atan2(Math.Abs(y), x);
 
             double x1 = Math.Sqrt(x * x + y * y);
@@ -416,32 +417,98 @@ namespace WpfServo
 
                 PathGeometry myPath = myGeom.GetOutlinedPathGeometry();
 
-                Z += 20;
-                Thread.Sleep(100);
-                DrawPathGeometry(myPath);
-                Z -= 20;
 
-                Z += 20;
-                Thread.Sleep(100);
-                 
-     
-                if(ListOfEdgePaths != null)
-                    DrawListOfEdgePaths(ListOfEdgePaths, EdgePathPosX, EdgePathPosY, EdgePathScale);
-                
-                Z -= 20;
+                DrawPathGeometry(myPath);
+
+                if (ListOfEdgePaths != null)
+                    DrawListOfPolygons(ListOfEdgePaths, EdgePathPosX, EdgePathPosY, EdgePathScale);
 
                 IsDrawing = false;
 
-                
             });
 
 
         }
 
+        private void DrawPolygon(List<Point> testPoints)
+        {
+            Z += 20;
+            Thread.Sleep(100);
 
+            
+
+            for (double phi = Math.PI / 4; phi <= 3 * Math.PI / 4; phi += Math.PI / 360)
+            {
+                Point p1 = new Point(100 * Math.Cos(phi), -100 * Math.Sin(phi));
+                Point p2 = new Point(300 * Math.Cos(phi), -300 * Math.Sin(phi));
+                Point[] dashed = Helper.ClipLineWithLineArray(p1, p2, testPoints);
+                for (int j = 0; j < dashed.Length / 2; j++)
+                {
+
+                    SmoothMoveTo(dashed[j * 2]);
+
+                    PenDown();
+                    SmoothMoveTo(dashed[j * 2 + 1]);
+                    PenUp();
+                }
+            }
+
+            List<Point> polarPoints = testPoints.Select(p => p.ToPolar()).ToList();
+
+           
+
+            for (double r = 100; r <= 300; r+=2)
+            {
+                Point p1 = new Point(r, 0);
+                Point p2 = new Point(r, Math.PI);
+                Point[] dashed = Helper.ClipLineWithLineArray(p1, p2, polarPoints);
+                
+
+
+                for (int j = 0; j < dashed.Length / 2; j++)
+                {
+
+                    SmoothMoveTo(dashed[j * 2].ToDecart());
+                    PenDown();
+                    DrawArc(dashed[j*2].X, dashed[j * 2].Y, dashed[j * 2+1].Y,25);
+                    PenUp();
+                }
+            }
+
+            /*for (double r = 100; r < 300; r+=2)
+            {
+                Point p1 = new Point(r * Math.Cos(Math.PI/4), -r * Math.Sin(Math.PI / 4));
+                Point p2 = new Point(r * Math.Cos(3*Math.PI / 4), -r * Math.Sin(3*Math.PI / 4));
+                Point[] dashed = Helper.ClipLineWithLineArray(p1, p2, testPoints);
+                DrawDashedLine(dashed);
+            }*/
+
+            Z -= 20;
+        }
+
+        public void PenUp()
+        {
+            for (int i = 0; i < 21; i += 2)
+            {
+                Z += 2;
+                CalcServoAngles(_x, _y, Z);
+                Thread.Sleep(25);
+            }
+        }
+        public void PenDown()
+        {
+            for (int i = 20; i >= 0; i -= 2)
+            {
+                Z -= 2;
+                CalcServoAngles(_x, _y, Z);
+                Thread.Sleep(25);
+            }
+        }
 
         private void DrawPathGeometry(PathGeometry myPath, double dx = 0, double dy = 0, double scale = 1)
         {
+            Z += 20;
+            Thread.Sleep(100);
             foreach (var fig in myPath.Figures.ToList().OrderBy(o => o.StartPoint.X))
             {
                
@@ -483,7 +550,7 @@ namespace WpfServo
 
                 
 
-                SmoothMoveTo(points[0].X, points[0].Y);
+                SmoothMoveTo(points[0]);
 
                 for (int i = 20; i >= 0; i-=4)
                 {
@@ -497,7 +564,7 @@ namespace WpfServo
                 for (var i = 0; i < points.Count-1; i++)
                 {
                     MyLinesQueue.Enqueue(new MyLine{From = points[i], To=points[i+1]});
-                    DrawLine(points[i].X, points[i].Y, points[i+1].X, points[i+1].Y);
+                    DrawLine(points[i], points[i+1]);
                     Thread.Sleep(25);
                 }
                
@@ -509,15 +576,63 @@ namespace WpfServo
                 }
                
             }
-           
 
-           
+            Z -= 20;
+
         }
 
 
+        private void DrawListOfPolygons(List<List<Curve>> listOfPaths, double dx = 0, double dy = 0, double scale = 1)
+        {
+            
+           
+            List<Point> points = new List<Point>();
+            foreach (var lc in listOfPaths)
+            {
+                points.Add(new Point(lc[0].A.x, lc[0].A.y));
+
+                foreach (var c in lc)
+                {
+                    if (c.Kind == CurveKind.Line)
+                    {
+                        Point p = new Point(c.B.x, c.B.y);
+                        points.Add(p);
+                        points.Add(p);
+                    }
+                    else
+                    {
+                        double bdx = c.A.x - c.B.x;
+                        double bdy = c.A.y - c.B.y;
+
+                        double len = Math.Sqrt(bdx * bdx + bdy * bdy) / 4;
+                        List<Point> bezierPoints = Helper.BezierPoints(
+                            (int) len, c.A.ToPoint(),
+                            c.ControlPointA.ToPoint(),
+                            c.ControlPointB.ToPoint(),
+                            c.B.ToPoint()
+                        );
+
+                        foreach (var bezierPoint in bezierPoints)
+                        {
+                            points.Add(bezierPoint);
+                            points.Add(bezierPoint);
+                        }
+
+                    }
+                }
+
+                points.RemoveAt(points.Count-1);
+            }
+
+            points = points.Select(p => new Point(p.X * scale + dx, p.Y * scale + dy)).ToList();
+            DrawPolygon(points);
+
+        }
+
         private void DrawListOfEdgePaths(List<List<Curve>> listOfPaths, double dx = 0, double dy = 0, double scale = 1)
         {
-
+            Z += 20;
+            Thread.Sleep(100);
             foreach (var lc in listOfPaths)
             {
                 List<Point> points = new List<Point>();
@@ -534,14 +649,14 @@ namespace WpfServo
                         double bdx = c.A.x - c.B.x;
                         double bdy = c.A.y - c.B.y;
 
-                        double len = Math.Sqrt(bdx * bdx + bdy * bdy)/4;
-                        
+                        double len = Math.Sqrt(bdx * bdx + bdy * bdy) / 4;
+
 
                         points.AddRange(
-                            Helper.BezierPoints( 
+                            Helper.BezierPoints(
                                 (int)len, c.A.ToPoint(),
-                                c.ControlPointA.ToPoint(), 
-                                c.ControlPointB.ToPoint(), 
+                                c.ControlPointA.ToPoint(),
+                                c.ControlPointB.ToPoint(),
                                 c.B.ToPoint()
                                 )
                         );
@@ -549,12 +664,13 @@ namespace WpfServo
                 }
 
                 points = points.Select(p => new Point(p.X * scale + dx, p.Y * scale + dy)).ToList();
+              
                 points.Add(points[0]);
 
 
                 if (points.Count < 1) return;
-                
-                SmoothMoveTo(points[0].X, points[0].Y);
+
+                SmoothMoveTo(points[0]);
 
                 for (int i = 20; i >= 0; i -= 4)
                 {
@@ -562,15 +678,15 @@ namespace WpfServo
                     CalcServoAngles(points[0].X, -points[0].Y, Z);
                     Thread.Sleep(25);
                 }
-                
+
 
                 for (var i = 1; i < points.Count; i++)
                 {
-                    MyLinesQueue.Enqueue(new MyLine { From = points[i-1], To = points[i] });
+                    MyLinesQueue.Enqueue(new MyLine { From = points[i - 1], To = points[i] });
                     _x = points[i].X;
                     _y = -points[i].Y;
                     CalcServoAngles(_x, _y, Z);
-                    
+
                     Thread.Sleep(25);
                 }
 
@@ -581,27 +697,48 @@ namespace WpfServo
                     Thread.Sleep(25);
                 }
             }
+            Z -= 20;
 
 
         }
 
-        private void DrawLine(double x0, double y0, double x1, double y1)
+
+
+
+        private void DrawLine(Point p0, Point p1, int msDelay = 10)
         {
-            if (x0.Equals(double.NaN)) return;
-            if (x0 < -250 || y0 < -250 || x1 < -250 || y0 < -250) return;
-            double leng = Math.Sqrt(Math.Pow(x1 - x0, 2) + Math.Pow(y1 - y0, 2));
+            if (p0.X.Equals(double.NaN)) return;
+            if (p0.X < -250 || p0.Y < -250 || p1.X < -250 || p1.Y < -250) return;
+            double leng = Math.Sqrt(Math.Pow(p1.X - p0.X, 2) + Math.Pow(p1.Y - p0.Y, 2));
             for (double t = 0; t <= 1; t += 1 / leng)
             {
-                _x = x0 * (1 - t) + x1 * t;
-                _y = -y0 * (1 - t) - y1 * t;
+                _x = p0.X * (1 - t) + p1.X * t;
+                _y = -p0.Y * (1 - t) - p1.Y * t;
                 CalcServoAngles(_x, _y , Z);
-                Thread.Sleep(10);
+                Thread.Sleep(msDelay);
             }
         }
 
-        private void SmoothMoveTo(double x, double y)
+        private void DrawArc(double r, double phi1, double phi2, int msDelay = 10)
         {
-            DrawLine(_x, -_y, x, y);
+           
+            
+            double delta = Math.PI / 360 * Math.Sign(phi2 - phi1);
+            if (Math.Abs(delta) < 1e-10) return;
+            for (double phi = phi1; phi <= phi2; phi += delta)
+            {
+                _x =  r * Math.Cos(phi);
+                _y =  r * Math.Sin(phi);
+                CalcServoAngles(_x, _y, Z);
+                Thread.Sleep(msDelay);
+            }
+        }
+
+
+
+        private void SmoothMoveTo(Point p, int msDelay = 10)
+        {
+            DrawLine(new Point(_x, -_y), p, msDelay);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

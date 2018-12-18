@@ -68,10 +68,10 @@
                                   Width="{Binding BorderDiameter}" 
                                   Height="{Binding BorderDiameter}" 
                                   x:Name="BorderEllipse"></Ellipse>
-                            <Ellipse Canvas.Left="-100" Canvas.Top="-100" 
+                            <Ellipse Canvas.Left="-120" Canvas.Top="-120" 
                                   StrokeThickness="2" Stroke="DarkRed"
-                                  Width="200" 
-                                  Height="200" 
+                                  Width="240" 
+                                  Height="240" 
                                   x:Name="BaseEllipse"></Ellipse>
                             <Path Stroke ="Gray" StrokeThickness="1" x:Name="EdgePath"
                                   Canvas.Left="{Binding EdgePathPosX}" 
