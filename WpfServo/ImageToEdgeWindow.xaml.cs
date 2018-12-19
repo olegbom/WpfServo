@@ -16,14 +16,17 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Emgu.CV;
-using Emgu.CV.Structure;
 using Microsoft.Win32;
 using WpfServo.Annotations;
 using CsPotrace;
+using OpenCvSharp;
+using OpenCvSharp.Extensions;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Drawing.Brushes;
 using Point = System.Windows.Point;
+using Rect = System.Windows.Rect;
+using Size = System.Windows.Size;
+using Window = System.Windows.Window;
 
 namespace WpfServo
 {
@@ -56,10 +59,17 @@ namespace WpfServo
         public static List<List<Curve>> ListOfPaths = new List<List<Curve>>();
 
 
+        public double RectCutWidth { get; set; } = 200;
+        public double RectCutHeight { get; set; } = 200;
+        public double RectCutX { get; set; } = 0;
+        public double RectCutY { get; set; } = 0;
+
+
         public string FileName { get; set; }
         public void OnFileNameChanged()
         {
-            gray = new Image<Gray, byte>(FileName);
+            gray = new Mat(FileName, ImreadModes.Grayscale);
+            OrigImage.Source = gray.ToBitmapSource();
             EdgeDetectionRefresh();
         }
 
@@ -94,26 +104,33 @@ namespace WpfServo
         private void EdgeDetectionRefresh()
         {
             if (gray == null) return;
-           
-            OrigImage.Source = ImageSourceForBitmap(gray.ToBitmap());
-            
+
             Potrace.Clear();
             ListOfPaths.Clear();
+
+
+            double scale = OrigImage.ActualHeight / gray.Rows;
+            if (scale <= 0) return;
+            int x0 = (int) (RectCutX / scale);
+            int x1 = (int) ((RectCutX + RectCutWidth) / scale);
+            int y0 = (int) (RectCutY / scale);
+            int y1 = (int) ((RectCutY + RectCutHeight) / scale);
+            if (x1 >= gray.Cols) x1 = gray.Cols - 1;
+            if (y1 >= gray.Rows) y1 = gray.Rows - 1;
+
+            Mat cutImage = gray[y0, y1, x0, x1];
+                
             if (CannyEnabled == true)
             {
-                Image<Gray, byte> canny = gray.Canny(CannyThresh, CannyLinking);
+                Mat canny = cutImage.Canny(CannyThresh, CannyLinking);
                 Potrace.Potrace_Trace(canny.ToBitmap(), ListOfPaths);
             }
-            else Potrace.Potrace_Trace(gray.ToBitmap(), ListOfPaths);
+            else Potrace.Potrace_Trace(cutImage.ToBitmap(), ListOfPaths);
 
             EdgePathGeometry.AddListOfPaths(ListOfPaths);
-            
-            
-
-          
         }
         
-        private Image<Gray, byte> gray;
+        private Mat gray;
 
         private void ButtonOpenImage_OnClick(object sender, RoutedEventArgs e)
         {
@@ -143,6 +160,52 @@ namespace WpfServo
             Close();
         }
 
-      
+        private Point _mDownPos;
+        private Point _mMovePos;
+        private bool _isDragging;
+
+        private void OrigImage_OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                _isDragging = true;
+                _mDownPos = e.GetPosition(OrigImage);
+                RectCutX = _mDownPos.X;
+                RectCutY = _mDownPos.Y;
+
+            }
+
+        }
+
+        private void OrigImage_OnMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                if (_isDragging)
+                {
+                    _mMovePos = e.GetPosition(OrigImage);
+                    RectCutX = Math.Min(_mDownPos.X, _mMovePos.X);
+                    RectCutY = Math.Min(_mDownPos.Y, _mMovePos.Y);
+                    RectCutWidth = Math.Abs(_mDownPos.X - _mMovePos.X);
+                    RectCutHeight = Math.Abs(_mDownPos.Y - _mMovePos.Y);
+                    EdgeDetectionRefresh();
+                }
+            }
+
+        }
+
+        private void OrigImage_OnMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+               _isDragging = false;
+            }
+
+        }
+
+        private void RectCut_OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            
+        }
     }
 }
