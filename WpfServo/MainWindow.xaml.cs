@@ -574,8 +574,8 @@ namespace WpfServo
 
         private void DrawListOfPolygons(List<List<Curve>> listOfPaths, double dx = 0, double dy = 0, double scale = 1)
         {
-            
-           
+         
+
             List<Point> points = new List<Point>();
             foreach (var lc in listOfPaths)
             {
@@ -669,10 +669,8 @@ namespace WpfServo
                 {
 
                     MyLinesQueue.Enqueue(new MyLine { From = points[i - 1], To = points[i] });
-                    _x = points[i].X;
-                    _y = -points[i].Y;
-                    CalcServoAngles(_x, _y, Z);
-
+                    SmoothMoveTo(points[i]);
+                    
                     Thread.Sleep(25);
                 }
 
