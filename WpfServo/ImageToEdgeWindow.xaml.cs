@@ -19,12 +19,13 @@ using System.Windows.Shapes;
 using Microsoft.Win32;
 using WpfServo.Annotations;
 using CsPotrace;
-using OpenCvSharp;
-using OpenCvSharp.Extensions;
+using Microsoft.CodeAnalysis.CSharp;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Drawing.Brushes;
+using Image = System.Drawing.Image;
 using Point = System.Windows.Point;
 using Rect = System.Windows.Rect;
+using Rectangle = System.Drawing.Rectangle;
 using Size = System.Windows.Size;
 using Window = System.Windows.Window;
 
@@ -59,32 +60,21 @@ namespace WpfServo
         public static List<List<Curve>> ListOfPaths = new List<List<Curve>>();
 
 
-        public double RectCutWidth { get; set; } = 200;
-        public double RectCutHeight { get; set; } = 200;
-        public double RectCutX { get; set; } = 0;
-        public double RectCutY { get; set; } = 0;
+        public int RectCutWidth { get; set; } = 200;
+        public int RectCutHeight { get; set; } = 200;
+        public int RectCutX { get; set; } = 0;
+        public int RectCutY { get; set; } = 0;
 
 
         public string FileName { get; set; }
         public void OnFileNameChanged()
         {
-            gray = new Mat(FileName, ImreadModes.Grayscale);
-            OrigImage.Source = gray.ToBitmapSource();
+           
+            image = Image.FromFile(FileName) as Bitmap;
+            OrigImage.Source = new BitmapImage(new Uri(FileName));
             EdgeDetectionRefresh();
         }
 
-        public double CannyThresh { get; set; } = 200;
-        public void OnCannyThreshChanged()
-        {
-            EdgeDetectionRefresh();
-        }
-
-
-        public double CannyLinking { get; set; } = 300;
-        public void OnCannyLinkingChanged()
-        {
-            EdgeDetectionRefresh();
-        }
 
         public double ProTraceThreshold { get; set; } = 0.5;
 
@@ -94,43 +84,47 @@ namespace WpfServo
             EdgeDetectionRefresh();
         }
 
-        public bool? CannyEnabled { get; set; } = true;
 
-        public void OnCannyEnabledChanged()
-        {
-            EdgeDetectionRefresh();
-        }
 
         private void EdgeDetectionRefresh()
         {
-            if (gray == null) return;
+            if (image == null) return;
 
             Potrace.Clear();
             ListOfPaths.Clear();
 
 
-            double scale = OrigImage.ActualHeight / gray.Rows;
+            double scale = OrigImage.ActualHeight / image.Height;
             if (scale <= 0) return;
-            int x0 = (int) (RectCutX / scale);
-            int x1 = (int) ((RectCutX + RectCutWidth) / scale);
-            int y0 = (int) (RectCutY / scale);
-            int y1 = (int) ((RectCutY + RectCutHeight) / scale);
-            if (x1 >= gray.Cols) x1 = gray.Cols - 1;
-            if (y1 >= gray.Rows) y1 = gray.Rows - 1;
+            int x = (int) (RectCutX / scale);
+            int w = (int) (RectCutWidth / scale);
+            int y = (int) (RectCutY / scale);
+            int h = (int) (RectCutHeight / scale);
 
-            Mat cutImage = gray[y0, y1, x0, x1];
+            Bitmap cutImage = CropBitmap(image, new Rectangle(x,y,w,h));
                 
-            if (CannyEnabled == true)
-            {
-                Mat canny = cutImage.Canny(CannyThresh, CannyLinking);
-                Potrace.Potrace_Trace(canny.ToBitmap(), ListOfPaths);
-            }
-            else Potrace.Potrace_Trace(cutImage.ToBitmap(), ListOfPaths);
+            Potrace.Potrace_Trace(cutImage, ListOfPaths);
 
             EdgePathGeometry.AddListOfPaths(ListOfPaths);
         }
-        
-        private Mat gray;
+
+        public static Bitmap CropBitmap(Bitmap src, Rectangle cropRect)
+        {
+            
+            Bitmap target = new Bitmap(cropRect.Width, cropRect.Height);
+
+            using (Graphics g = Graphics.FromImage(target))
+            {
+                g.DrawImage(src, new Rectangle(0, 0, target.Width, target.Height),
+                    cropRect,
+                    GraphicsUnit.Pixel);
+            }
+
+            return target;
+        }
+
+
+        private Bitmap image;
 
         private void ButtonOpenImage_OnClick(object sender, RoutedEventArgs e)
         {
@@ -170,8 +164,8 @@ namespace WpfServo
             {
                 _isDragging = true;
                 _mDownPos = e.GetPosition(OrigImage);
-                RectCutX = _mDownPos.X;
-                RectCutY = _mDownPos.Y;
+                RectCutX = (int)_mDownPos.X;
+                RectCutY = (int)_mDownPos.Y;
 
             }
 
@@ -184,10 +178,10 @@ namespace WpfServo
                 if (_isDragging)
                 {
                     _mMovePos = e.GetPosition(OrigImage);
-                    RectCutX = Math.Min(_mDownPos.X, _mMovePos.X);
-                    RectCutY = Math.Min(_mDownPos.Y, _mMovePos.Y);
-                    RectCutWidth = Math.Abs(_mDownPos.X - _mMovePos.X);
-                    RectCutHeight = Math.Abs(_mDownPos.Y - _mMovePos.Y);
+                    RectCutX = (int) Math.Min(_mDownPos.X, _mMovePos.X);
+                    RectCutY = (int) Math.Min(_mDownPos.Y, _mMovePos.Y);
+                    RectCutWidth = (int) Math.Abs(_mDownPos.X - _mMovePos.X);
+                    RectCutHeight = (int) Math.Abs(_mDownPos.Y - _mMovePos.Y);
                     EdgeDetectionRefresh();
                 }
             }
