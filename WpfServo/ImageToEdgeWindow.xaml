@@ -5,19 +5,24 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfServo"
         mc:Ignorable="d"
-        Title="ImageToEdgeWindow" Height="450" Width="800">
+        Title="ImageToEdgeWindow" Height="530" Width="800">
     <Window.Resources>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="18"/>
         </Style>
     </Window.Resources>
-    <Grid>
-        <StackPanel Orientation="Horizontal">
-            <StackPanel Orientation="Vertical">
+    <Grid x:Name="GrandGrid">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Orientation="Vertical" Grid.Column="0">
                 <Button Margin="3" Height="40" Width="120" 
                     FontSize="20" 
                     Click="ButtonOpenImage_OnClick" 
-                    HorizontalAlignment="Left" 
+                    HorizontalAlignment="Center" 
                     VerticalAlignment="Top">Открыть</Button>
                 <TextBlock Text="{Binding Path=CannyThresh, StringFormat=Threshold {0:0.0}}"></TextBlock>
                 <Slider Minimum="0" Maximum="500" Value="{Binding CannyThresh}"></Slider>
@@ -30,18 +35,33 @@
                 <Button Margin="3" Height="40" Width="120" 
                         FontSize="20" 
                         Click="ButtonTransfer_OnClick" 
-                        HorizontalAlignment="Left" 
+                        HorizontalAlignment="Center"  
                         VerticalAlignment="Top">Передать</Button>
             </StackPanel>
-           
-            <Image x:Name="OrigImage" MaxWidth="500"></Image>
-            <Canvas x:Name="MyCanvas" Width="500" Height="500">
+
+            <Canvas VerticalAlignment="Top" HorizontalAlignment="Left" 
+                    Width="{Binding ElementName=OrigImage, Path=ActualWidth}"  Grid.Column="1">
+                <Image x:Name="OrigImage" MaxHeight="{Binding ElementName=GrandGrid, Path=ActualHeight}"
+                       MouseDown="OrigImage_OnMouseDown" 
+                       MouseMove="OrigImage_OnMouseMove"
+                       MouseUp="OrigImage_OnMouseUp">
+                
+                </Image>
+                <Rectangle x:Name ="RectCut" Width="{Binding RectCutWidth}"
+                           Height="{Binding RectCutHeight}"
+                           Canvas.Left="{Binding RectCutX}"
+                           Canvas.Top="{Binding RectCutY}" Stroke="DarkRed" StrokeThickness="2" Fill="#0F000000" MouseDown="RectCut_OnMouseDown">
+
+                </Rectangle>
+            </Canvas>
+            
+            <Canvas x:Name="MyCanvas" Width="500" Height="500" Grid.Column="2">
                 <Path x:Name="EdgePath" Stroke="Black" StrokeThickness="1">
                     <Path.Data>
                         <PathGeometry x:Name="EdgePathGeometry"/>
                     </Path.Data>
                 </Path>
             </Canvas>
-        </StackPanel>
+      
     </Grid>
 </Window>
