@@ -51,9 +51,35 @@ namespace WpfServo
         public double BetaAngle => (Slider1Value - 1000) * 0.09 / 2 - 90;
         public double GammaAngle =>  (Slider3Value - 1590) * 0.108 / 2 - 90 ;   // 0.108 * 2 + 1390
  
-        public double PhiAngle =>   90- (Slider4Value - 1350) * 0.11 / 2 ;
-        public double ThetaAngle =>    (Slider5Value - 1050) * 0.086 / 2 - 90;
+        public double PhiAngle => 90 - (Slider4Value - 1350) * 0.11 / 2 ;
+        public double ThetaAngle => (Slider5Value - 1050) * 0.086 / 2 - 90;
 
+
+        public double Beta
+        {
+            get => (Slider1Value - 1000) * 0.09 / 2 - 90;
+            set => Slider1Value = value * 180 / Math.PI / 0.09 * 2 + 1000;
+        }
+
+        public double Gamma
+        {
+            get => (Slider3Value - 1590) * 0.108 / 2 - 90;
+            set => Slider3Value = value * 180 / Math.PI / 0.108 * 2 + 1590;
+        }
+
+        public double Phi
+        {
+            get => 90 - (Slider4Value - 1350) * 0.11 / 2;
+            set => Slider4Value = value * 180 / Math.PI / 0.11 * 2 + 1350;
+        }
+
+        public double Theta
+        {
+            get => (Slider5Value - 1050) * 0.086 / 2 - 90;
+            set => Slider5Value = value * 180 / Math.PI / 0.086 * 2 + 1050;
+        }
+
+        
         public Model3D RoboHandBaseModel { get; set; }
         public Model3D RoboHandServo2Model { get; set; }
         public Model3D RoboHandShoulder1Model { get; set; }
@@ -62,6 +88,7 @@ namespace WpfServo
 
         public Point3DCollection Points3D {get; set;} = new Point3DCollection(5000);
 
+        private bool _points3DClearRequire = false;
 
         private SerialPort _serialPort;
 
@@ -94,11 +121,12 @@ namespace WpfServo
                 if(!MyPoint3DQueue.IsEmpty)
                     while (MyPoint3DQueue.TryDequeue(out var point))
                     {
-                        if (Points3D.Count > 4950)
+                        if (Points3D.Count > 4950 || _points3DClearRequire)
                         { 
                             var last = Points3D.Last();
                             Points3D.Clear();
                             Points3D.Add(last);
+                            _points3DClearRequire = false;
                         }
                         Points3D.Add(point);
                         Points3D.Add(point);
@@ -208,17 +236,12 @@ namespace WpfServo
         }
       
 
-      
-
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _serialPort?.Close();
             _serialPortTimer?.Dispose();
             _programClosing = true;
         }
-
-
-
 
         private Point mDownPos;
         private Point mMovePos;
@@ -234,9 +257,7 @@ namespace WpfServo
 
             if (!isGhostTextDown && !isGhostTextDown)
             {
-                _x = mDownPos.X;
-                _y = -mDownPos.Y;
-                CalcServoAngles(_x, _y, Z + 5);
+                MoveTo(mDownPos.X, -mDownPos.Y, Z + 5);
             }
 
             isMouseDown = true;
@@ -246,7 +267,7 @@ namespace WpfServo
         {
             if (!isGhostTextDown && !isGhostTextDown)
             {
-                CalcServoAngles(_x, _y, Z+5);
+                MoveTo(X, Y, Z+5);
             }
             isMouseDown = false;
             isGhostTextDown = false;
@@ -270,9 +291,7 @@ namespace WpfServo
             else if (isMouseDown)
             {
                 mMovePos = e.GetPosition(MyCanvas);
-                _x = mMovePos.X;
-                _y = -mMovePos.Y;
-                CalcServoAngles(_x, _y, Z);
+                MoveTo(mMovePos.X, -mMovePos.Y, Z);
             }
         }
 
@@ -298,9 +317,12 @@ namespace WpfServo
             isMouseDown = false;
         }
 
-        public void CalcServoAngles(double x, double y, double z)
+        public void MoveTo(double x, double y, double z)
         {
-     
+
+            _x = x;
+            _y = y;
+            _z = z;
             z = z + (y - 120) / 8;
             double beta = Math.Atan2(Math.Abs(y), x);
 
@@ -358,10 +380,33 @@ namespace WpfServo
             MyPoint3DQueue.Enqueue(new Point3D(-x, z-40, y));
         }
 
-        public double Z = 150, _x = 0, _y = 100, _pickUp = 0;
+        private double _x = 0;
 
-        public double BorderDiameter { get; set; }
-        public double BorderRadiusMinus { get; set; }
+        public double X
+        {
+            get => _x;
+            set => MoveTo(_x, _y, _z);
+        }
+
+        private double _y = 130;
+        public double Y
+        {
+            get => _y;
+            set => MoveTo(_x, _y, _z);
+        }
+
+        private double _z = 100;
+        public double Z
+        {
+            get => _z;
+            set => MoveTo(_x, _y, _z);
+        }
+        
+
+
+
+        public double BorderDiameter { get; private set; }
+        public double BorderRadiusMinus { get; private set; }
 
         private void Slider_ZChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -371,7 +416,7 @@ namespace WpfServo
 
             BorderDiameter = r*2;
             BorderRadiusMinus = -r;
-            CalcServoAngles(_x, _y, Z);
+
         }
 
         public double TextPosX { get; set; } = -130;
@@ -381,19 +426,29 @@ namespace WpfServo
         public double EdgePathPosY { get; set; } = -180;
 
 
-        public bool IsDrawing { get; set; }
+        public bool IsDrawing { get; private set; }
         public bool IsButtonDrawEnabled => !IsDrawing;
-        public ConcurrentQueue<MyLine> MyLinesQueue { get; set; } = new ConcurrentQueue<MyLine>();
-        public ConcurrentQueue<Point3D> MyPoint3DQueue { get; set; } = new ConcurrentQueue<Point3D>();
+        public ConcurrentQueue<MyLine> MyLinesQueue { get; } = new ConcurrentQueue<MyLine>();
+        public ConcurrentQueue<Point3D> MyPoint3DQueue { get; } = new ConcurrentQueue<Point3D>();
 
-        private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
+        public void Points3DClear()
         {
-            IsDrawing = true;
+            _points3DClearRequire = true;
+        }
+
+        public void CanvasClear()
+        {
             MyCanvas.Children.Clear();
             MyCanvas.Children.Add(GhostTextBlock);
             MyCanvas.Children.Add(BorderEllipse);
             MyCanvas.Children.Add(BaseEllipse);
             MyCanvas.Children.Add(EdgePath);
+        }
+
+        private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
+        {
+            IsDrawing = true;
+            CanvasClear();
             Point3D point = Points3D.Last();
             Points3D.Clear();
             Points3D.Add(point);
@@ -427,7 +482,7 @@ namespace WpfServo
 
         private void DrawPolygon(List<Point> testPoints)
         {
-            Z += 20;
+            PenUp();
             Thread.Sleep(100);
 
             
@@ -479,7 +534,7 @@ namespace WpfServo
 
 
 
-            Z -= 20;
+            PenDown();
         }
 
         public void PenUp()
@@ -487,7 +542,6 @@ namespace WpfServo
             for (int i = 0; i < 21; i += 2)
             {
                 Z += 2;
-                CalcServoAngles(_x, _y, Z);
                 Thread.Sleep(25);
             }
         }
@@ -496,14 +550,13 @@ namespace WpfServo
             for (int i = 20; i >= 0; i -= 2)
             {
                 Z -= 2;
-                CalcServoAngles(_x, _y, Z);
                 Thread.Sleep(25);
             }
         }
 
         private void DrawPathGeometry(PathGeometry myPath, double dx = 0, double dy = 0, double scale = 1)
         {
-            Z += 20;
+            PenUp();
             Thread.Sleep(100);
             foreach (var fig in myPath.Figures.ToList().OrderBy(o => o.StartPoint.X))
             {
@@ -567,7 +620,7 @@ namespace WpfServo
 
             }
 
-            Z -= 20;
+            PenDown();
 
         }
 
@@ -621,7 +674,7 @@ namespace WpfServo
 
         private void DrawListOfEdgePaths(List<List<Curve>> listOfPaths, double dx = 0, double dy = 0, double scale = 1)
         {
-            Z += 20;
+            PenUp();
             Thread.Sleep(100);
             foreach (var lc in listOfPaths)
             {
@@ -676,14 +729,14 @@ namespace WpfServo
 
                 PenUp();
             }
-            Z -= 20;
+            PenDown();
 
 
         }
 
 
 
-        private void DrawLine(MyLine line, int msDelay = 10) => DrawLine(line.From, line.To, msDelay);
+        public void DrawLine(MyLine line, int msDelay = 10) => DrawLine(line.From, line.To, msDelay);
         private void DrawLine(Point p0, Point p1, int msDelay = 10)
         {
             if (p0.X.Equals(double.NaN)) return;
@@ -691,14 +744,14 @@ namespace WpfServo
             double leng = Math.Sqrt(Math.Pow(p1.X - p0.X, 2) + Math.Pow(p1.Y - p0.Y, 2));
             for (double t = 0; t <= 1; t += 1 / leng)
             {
-                _x = p0.X * (1 - t) + p1.X * t;
-                _y = -p0.Y * (1 - t) - p1.Y * t;
-                CalcServoAngles(_x, _y , Z);
+                double x = p0.X * (1 - t) + p1.X * t;
+                double y = -p0.Y * (1 - t) - p1.Y * t;
+                MoveTo(x, y, Z);
                 Thread.Sleep(msDelay);
             }
         }
 
-        private void DrawArc(double r, double phi1, double phi2, int msDelay = 10)
+        public void DrawArc(double r, double phi1, double phi2, int msDelay = 10)
         {
            
             
@@ -706,18 +759,38 @@ namespace WpfServo
             if (Math.Abs(delta) < 1e-10) return;
             for (double phi = phi1; phi <= phi2; phi += delta)
             {
-                _x =  r * Math.Cos(phi);
-                _y =  r * Math.Sin(phi);
-                CalcServoAngles(_x, _y, Z);
+                double x = r * Math.Cos(phi);
+                double y = r * Math.Sin(phi);
+                MoveTo(x, y, Z);
+                Thread.Sleep(msDelay);
+            }
+        }
+
+        public void SmoothMoveTo(double x, double y, double z, int msDelay = 10)
+        {
+            double x0 = X;
+            double y0 = Y;
+            double z0 = Z;
+            double dx = x0 - x;
+            double dy = y0 - y;
+            double dz = z0 - z;
+            double leng = Math.Sqrt(dx*dx + dy*dy + dz*dz);
+            for (double t = 0; t <= 1; t += 1 / leng)
+            {
+                double ax = x0 * (1 - t) + x * t;
+                double ay = y0 * (1 - t) + y * t;
+                double az = z0 * (1 - t) + z * t;
+                MoveTo(ax, ay, az);
                 Thread.Sleep(msDelay);
             }
         }
 
 
 
+
         private void SmoothMoveTo(Point p, int msDelay = 10)
         {
-            DrawLine(new Point(_x, -_y), p, msDelay);
+            DrawLine(new Point(X, -Y), p, msDelay);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -727,15 +800,7 @@ namespace WpfServo
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-        public class Globals
-        {
-            public SerialPort serialPort;
-
-            public void TestMethod()
-            {
-                MessageBox.Show("Запуск из скрипта!", "test");
-            }
-        }
+       
 
         public void Delay(int ms)
         {
@@ -745,7 +810,8 @@ namespace WpfServo
         private Script _script;
         private void ButtonCompile_OnClick(object sender, RoutedEventArgs e)
         {
-            _script = CSharpScript.Create(textEditor.Text, globalsType: typeof(MainWindow));
+            _script = CSharpScript.Create(textEditor.Text,
+                globalsType: typeof(MainWindow));
             
             var diagnostics = _script.Compile();
             string message = "";
@@ -767,8 +833,7 @@ namespace WpfServo
 
         private void ButtonRun_OnClick(object sender, RoutedEventArgs e)
         {
-            Globals newGlobals = new Globals(){serialPort = _serialPort};
-            _script.RunAsync(globals: this);
+             Task.Run( () =>  _script.RunAsync(globals: this));
         }
 
         private void TextEditor_OnTextChanged(object sender, EventArgs e)
@@ -795,7 +860,7 @@ namespace WpfServo
 
         public double EdgePathScale { get; set; } = 1.0;
 
-        public List<List<Curve>> ListOfEdgePaths;
+        private List<List<Curve>> ListOfEdgePaths;
         
 
         private void MenuAddImage_OnClick(object sender, RoutedEventArgs e)

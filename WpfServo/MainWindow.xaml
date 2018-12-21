@@ -125,12 +125,13 @@
                                                Name="textEditor"
                                                SyntaxHighlighting="C#"
                                                FontFamily="Consolas"
-                                               FontSize="12pt" TextChanged="TextEditor_OnTextChanged">
-
+                                               FontSize="12pt" TextChanged="TextEditor_OnTextChanged"
+                                               Text="using System;">
+                            
                         </avalonedit:TextEditor>
                         <ScrollViewer Grid.Row="3">
                             <TextBlock  HorizontalAlignment="Stretch" 
-                                        VerticalAlignment="Top" 
+                                        VerticalAlignment="Top"  TextWrapping="WrapWithOverflow"
                                         Text="{Binding CompilingInfo}"/>
                         </ScrollViewer>
                         <GridSplitter Grid.Row="2" Background="Black" Height="2" VerticalAlignment="Center" HorizontalAlignment="Stretch"></GridSplitter>
