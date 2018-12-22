@@ -57,25 +57,25 @@ namespace WpfServo
 
         public double Beta
         {
-            get => (Slider1Value - 1000) * 0.09 / 2 - 90;
+            get => (Slider1Value - 1000)/ 180 * Math.PI * 0.09 / 2;
             set => Slider1Value = value * 180 / Math.PI / 0.09 * 2 + 1000;
         }
 
         public double Gamma
         {
-            get => (Slider3Value - 1590) * 0.108 / 2 - 90;
+            get => (Slider3Value - 1590)/ 180 * Math.PI * 0.108 / 2;
             set => Slider3Value = value * 180 / Math.PI / 0.108 * 2 + 1590;
         }
 
         public double Phi
         {
-            get => 90 - (Slider4Value - 1350) * 0.11 / 2;
+            get => (Slider4Value - 1350)/ 180 * Math.PI * 0.11 / 2;
             set => Slider4Value = value * 180 / Math.PI / 0.11 * 2 + 1350;
         }
 
         public double Theta
         {
-            get => (Slider5Value - 1050) * 0.086 / 2 - 90;
+            get => (Slider5Value - 1050)/ 180 * Math.PI * 0.086 / 2;
             set => Slider5Value = value * 180 / Math.PI / 0.086 * 2 + 1050;
         }
 
@@ -207,14 +207,58 @@ namespace WpfServo
             _serialPort = await Task.Run(() => FindComPort());
             _serialPort.Open();
 
-            _serialPortTimer = new Timer((o) =>
+
+            UInt16 oldSlider5Value = 0;
+            UInt16 oldSlider1Value = 0;
+            UInt16 oldSlider4Value = 0;
+            UInt16 oldSlider3Value = 0;
+            UInt16 oldSlider2Value = 0;
+            UInt16 oldSlider6Value = 0;
+
+            _serialPortTimer = new Timer(o =>
             {
-                SendServoValue(4, (UInt16)Slider5Value);
-                SendServoValue(0, (UInt16)Slider1Value);
-                SendServoValue(3, (UInt16)Slider4Value);
-                SendServoValue(2, (UInt16)Slider3Value);
-                SendServoValue(1, (UInt16)Slider2Value);
-                SendServoValue(5, (UInt16)Slider6Value);
+                UInt16 newSlider5Value = (UInt16)Slider5Value;
+                if (oldSlider5Value != newSlider5Value)
+                {
+                    SendServoValue(4, newSlider5Value);
+                    oldSlider5Value = newSlider5Value;
+                }
+
+                UInt16 newSlider1Value = (UInt16)Slider1Value;
+                if (oldSlider1Value != newSlider1Value)
+                {
+                    SendServoValue(0, newSlider1Value);
+                    oldSlider1Value = newSlider1Value;
+                }
+
+                UInt16 newSlider4Value = (UInt16)Slider4Value;
+                if (oldSlider4Value != newSlider4Value)
+                {
+                    SendServoValue(3, newSlider4Value);
+                    oldSlider4Value = newSlider4Value;
+                }
+
+                UInt16 newSlider3Value = (UInt16)Slider3Value;
+                if (oldSlider3Value != newSlider3Value)
+                {
+                    SendServoValue(2, newSlider3Value);
+                    oldSlider3Value = newSlider3Value;
+                }
+
+                UInt16 newSlider2Value = (UInt16)Slider2Value;
+                if (oldSlider2Value != newSlider2Value)
+                {
+                    SendServoValue(1, newSlider2Value);
+                    oldSlider2Value = newSlider2Value;
+                }
+
+                UInt16 newSlider6Value = (UInt16)Slider6Value;
+                if (oldSlider6Value != newSlider6Value)
+                {
+                    SendServoValue(5, newSlider6Value);
+                    oldSlider6Value = newSlider6Value;
+                }
+              
             }, null, 100, 20);
             
         }
@@ -257,7 +301,7 @@ namespace WpfServo
 
             if (!isGhostTextDown && !isGhostTextDown)
             {
-                MoveTo(mDownPos.X, -mDownPos.Y, Z + 5);
+                MoveTo(mDownPos.X, -mDownPos.Y, Z);
             }
 
             isMouseDown = true;
@@ -267,7 +311,7 @@ namespace WpfServo
         {
             if (!isGhostTextDown && !isGhostTextDown)
             {
-                MoveTo(X, Y, Z+5);
+                MoveTo(X, Y, Z);
             }
             isMouseDown = false;
             isGhostTextDown = false;
@@ -377,29 +421,54 @@ namespace WpfServo
             generalTransform.Children.Add(transform2);
             generalTransform.Children.Add(transform1);*/
             // MyPoint3DQueue.Enqueue(new Point3D(generalTransform.Value.OffsetX, generalTransform.Value.OffsetY, generalTransform.Value.OffsetZ));
-            MyPoint3DQueue.Enqueue(new Point3D(-x, z-40, y));
+            
+            MyPoint3DQueue.Enqueue(FormAngleToCoordinate());
+            //MyPoint3DQueue.Enqueue(new Point3D(-x, z-40, y));
         }
 
-        private double _x = 0;
+        private Point3D FormAngleToCoordinate()
+        {
 
+
+            double beta = BetaAngle / 180 * Math.PI;
+            double gamma = GammaAngle / 180 * Math.PI;
+            double phi = PhiAngle / 180 * Math.PI;
+
+
+            double cosGammaPhi = Math.Cos(gamma + phi);
+            double a1 = BLen * cosGammaPhi + ALen * Math.Sin(phi);
+            double x = Math.Sin(beta) * a1;
+            double z = Math.Cos(beta) * a1;
+            double y = ALen * Math.Cos(phi) - BLen * Math.Sin(gamma + phi);
+
+            //  sin(beta)*(BLen*cos(gamma + phi) + ALen*sin(phi))
+            // ALen* cos(phi) -BLen * sin(gamma + phi)
+            // cos(beta) * (BLen * cos(gamma + phi) + ALen * sin(phi))
+
+
+            return new Point3D(x,y,z);
+        }
+
+
+        private double _x;
         public double X
         {
             get => _x;
-            set => MoveTo(_x, _y, _z);
+            set => MoveTo(value, _y, _z);
         }
 
         private double _y = 130;
         public double Y
         {
             get => _y;
-            set => MoveTo(_x, _y, _z);
+            set => MoveTo(_x, value, _z);
         }
 
         private double _z = 100;
         public double Z
         {
             get => _z;
-            set => MoveTo(_x, _y, _z);
+            set => MoveTo(_x, _y, value);
         }
         
 
@@ -502,12 +571,11 @@ namespace WpfServo
 
            
 
-            for (int i = 0; i < lines.Count; i++)
+            foreach (var line in lines)
             {
-
-                SmoothMoveTo(lines[i].From);
+                SmoothMoveTo(line.From);
                 PenDown();
-                SmoothMoveTo(lines[i].To);
+                SmoothMoveTo(line.To);
                 PenUp();
             }
 
